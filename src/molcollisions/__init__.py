@@ -1,4 +1,3 @@
-# src/molcollisions/__init__.py
 """
 molcollisions: Hash Collisions in Molecular Fingerprints
 
