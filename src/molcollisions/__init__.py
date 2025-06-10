@@ -1,8 +1,8 @@
 """
 molcollisions: Hash Collisions in Molecular Fingerprints
 
-A research package for studying the effects of fingerprint compression
-on Gaussian Process performance in molecular property prediction.
+A research package for studying the effects of hash collisions in 
+molecular fingerprints on regression and Bayesian optimization performance
 
 Example usage:
     >>> from molcollisions import SparseFingerprint, FingerprintConfig
