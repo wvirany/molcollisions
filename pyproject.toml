@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "molcollisions"
+version = "0.1.0"  # Start with 0.1.0 for "first working version"
+description = "Molecular fingerprint hash collision analysis"
+requires-python = ">=3.8"
+dependencies = [
+    "numpy",
+    "rdkit",
+    "jax",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "ruff",
+]
+
+[tool.black]
+line-length = 100
+target-version = ['py38']
+
+[tool.ruff]
+line-length = 100
+lint.select = [
+  "E", "W",  # pycodestyle
+  "F",       # Pyflakes
+  "I",       # isort
+]
+lint.ignore = [
+  "E501",    # Line too long -- let black handle it
+  "E203",    # whitespace before ':'
+]
