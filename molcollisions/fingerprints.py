@@ -75,9 +75,7 @@ class CompressedFP(BaseFP):
         self.fp_size = fp_size
 
         # Create fingerprint generator
-        self.fpgen = rdFingerprintGenerator.GetMorganGenerator(
-            radius=radius, fp_size=fp_size
-        )
+        self.fpgen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fp_size=fp_size)
 
     @lru_cache(maxsize=cache_size)  # Cache fingerprints for BO performance
     def __call__(self, smiles: str):
