@@ -19,6 +19,9 @@ dev = [
     "pre-commit",
 ]
 
+[tool.setuptools]
+pacakges = ["molcollisions"]
+
 [tool.black]
 line-length = 100
 target-version = ['py38']
