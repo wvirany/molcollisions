@@ -15,8 +15,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "black",
-    "ruff",
+    "pytest",
+    "pre-commit",
 ]
 
 [tool.black]
@@ -32,5 +32,9 @@ lint.select = [
 ]
 lint.ignore = [
   "E501",    # Line too long -- let black handle it
-  "E203",    # whitespace before ':'
 ]
+
+[tool.mypy]
+python_version = "3.9"
+warn_unused_configs = true
+ignore_missing_imports = true

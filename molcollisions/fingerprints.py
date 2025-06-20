@@ -6,6 +6,7 @@ from rdkit.Chem import rdFingerprintGenerator
 
 cache_size = 300_000
 
+
 class BaseFP(ABC):
     def __init__(self, radius: int = 2, count: bool = True):
         self.radius = radius

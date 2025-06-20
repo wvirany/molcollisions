@@ -1,0 +1,33 @@
+# Pre-commit manages the linting tools and their versions
+repos:
+  # Standard pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      -   id: check-added-large-files
+    -   id: check-merge-conflict  
+    -   id: check-toml
+    -   id: check-yaml
+    -   id: debug-statements
+    -   id: end-of-file-fixer
+    -   id: trailing-whitespace
+    -   id: detect-private-key
+    -   id: check-docstring-first
+    -   id: name-tests-test
+    -   id: check-case-conflict
+    -   id: check-json
+
+  # Black formatter - pre-commit manages the version
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        language_version: python3
+        args: ["--config=pyproject.toml"]
+
+  # Ruff linter - pre-commit manages the version  
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.7.1
+    hooks:
+      - id: ruff
+        args: [--fix]
