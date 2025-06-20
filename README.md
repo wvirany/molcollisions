@@ -13,4 +13,4 @@ pre-commit install
 mypy molcollisions/
 ```
 
-**Note**: Code formatting and linting run automatically on commit via pre-commit hooks.
+**Note**: Code formatting and linting with `black` and `ruff` run automatically on commit via pre-commit hooks, but `mypy` must be run manually to check for type errors.
