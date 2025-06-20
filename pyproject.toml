@@ -20,7 +20,7 @@ dev = [
 ]
 
 [tool.setuptools]
-pacakges = ["molcollisions"]
+packages = ["molcollisions"]
 
 [tool.black]
 line-length = 100

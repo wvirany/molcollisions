@@ -14,6 +14,7 @@ repos:
     -   id: detect-private-key
     -   id: check-docstring-first
     -   id: name-tests-test
+        args: ['--django']
     -   id: check-case-conflict
     -   id: check-json
 
