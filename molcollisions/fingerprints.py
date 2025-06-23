@@ -10,9 +10,6 @@ cache_size = 300_000
 class BaseFP(ABC):
     def __init__(self, radius: int = 2, count: bool = True):
         self.radius = radius
-
-        if not isinstance(count, bool):
-            raise TypeError(f"count must be bool, got {type(count)}")
         self.count = count
 
     @abstractmethod
