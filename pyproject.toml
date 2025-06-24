@@ -11,6 +11,8 @@ dependencies = [
     "numpy",
     "rdkit",
     "jax",
+    "tanimoto_gp @ git+https://github.com/wvirany/tanimoto-gp.git@fixed-gp-stable",
+    "kern_gp @ git+https://github.com/wvirany/kernel-only-gp.git@update-cholesky-stable",
 ]
 
 [project.optional-dependencies]

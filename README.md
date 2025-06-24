@@ -4,18 +4,42 @@
 # Clone and install
 git clone https://github.com/wvirany/molcollisions.git
 cd molcollisions
-pip install -e ".[dev]"
+pip install -e .
 
 # Set up code quality tools
 pre-commit install
+```
 
-# Optional: Run type checking
+
+### Dependencies
+
+**Core libraries:**
+
+```toml
+dependencies = [
+    "numpy",
+    "rdkit",
+    "jax",
+    "tanimoto_gp @ git+https://github.com/wvirany/tanimoto-gp.git@fixed-gp-stable",
+    "kern_gp @ git+https://github.com/wvirany/kernel-only-gp.git@update-cholesky-stable",
+]
+```
+
+This project uses specific forks of existing packages:
+
+* `tanimoto_gp` - Tanimoto kernel Gaussian processes (forked to provide caching optimizations)
+* `kern_gp` - Kernel computations with Cholesky updates (forked to provide efficient Cholesky factor updates)
+
+**Development tools:** `pytest`, `pre-commit`, `black`, `ruff`, `mypy`
+
+**Code quality:**
+
+Code formatting and linting run automatically on commit via pre-commit hooks (`mypy` is manual):
+
+```bash
+# Manual run on all files
+pre-commit run --all-files
+
+# Type checking (manual)
 mypy molcollisions/
 ```
-
-**Note**: Code formatting and linting with `black` and `ruff` is run automatically on commit via pre-commit hooks, but can be run via
-```
-pre-commit run --all-files
-```
-
-`mypy` must be run manually to check for type errors
