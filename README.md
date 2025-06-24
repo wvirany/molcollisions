@@ -34,7 +34,7 @@ This project uses specific forks of existing packages:
 
 **Code quality:**
 
-Code formatting and linting run automatically on commit via pre-commit hooks (`mypy` is manual):
+Code formatting and linting run automatically on commit via pre-commit hooks, type checking with `mypy` is manual:
 
 ```bash
 # Manual run on all files
