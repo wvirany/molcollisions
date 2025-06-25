@@ -10,9 +10,10 @@ import tanimoto_gp
 
 from molcollisions.fingerprints import CompressedFP, SparseFP
 
-# Simple test data
+# Simple dataset
 smiles = ["CCO", "CCC", "CC"]
 y = np.array([1.0, -0.5, 0.8])
+smiles_test = ["CCCO"]
 
 
 def test_sparse_fp_integration():
@@ -50,7 +51,27 @@ def test_gp_prediction():
     )
 
     # Make prediction
-    mean_pred, _ = gp.predict_f(gp_params, ["CCCO"], full_covar=False)
+    mean_pred, _ = gp.predict_y(gp_params, smiles_test, full_covar=False)
 
     # Check it's finite
     assert jnp.isfinite(mean_pred).all()
+
+
+def test_fixed_gp():
+    """Test that FixedTanimotoGP achieves the same results as ConstantMeanTanimotoGP"""
+
+    fp_func = SparseFP(radius=2, count=True)
+
+    gp_params = tanimoto_gp.TanimotoGP_Params(
+        raw_amplitude=jnp.array(1.0), raw_noise=jnp.array(-2.0), mean=jnp.array(0.0)
+    )
+
+    constant_mean_gp = tanimoto_gp.ConstantMeanTanimotoGP(fp_func, smiles, y)
+    fixed_gp = tanimoto_gp.FixedTanimotoGP(gp_params, fp_func, smiles, y)
+
+    const_gp_pred, _ = constant_mean_gp.predict_y(gp_params, smiles_test, full_covar=False)
+    fixed_gp_pred, _ = fixed_gp.predict_y(
+        gp_params, smiles_test, full_covar=False, from_train=False
+    )
+
+    assert np.allclose(const_gp_pred, fixed_gp_pred, rtol=1e-10)
