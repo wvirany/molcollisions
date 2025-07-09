@@ -9,6 +9,7 @@ description = "Molecular fingerprint hash collision analysis"
 requires-python = ">=3.8"
 dependencies = [
     "numpy",
+    "pandas",
     "rdkit",
     "jax",
     "tanimoto_gp @ git+https://github.com/wvirany/tanimoto-gp.git@fixed-gp-stable",
