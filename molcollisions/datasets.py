@@ -5,7 +5,16 @@ import pandas as pd
 
 
 class Dockstring:
-    "DOCKSTRING dataset loader."
+    """
+    DOCKSTRING dataset loader.
+
+    Args:
+        - target: DOCKSTRING target
+        - n_train: Number of train molecules in train / test split
+        - seed: Random seed for sampling training set
+
+    Note that the test set is constant as determined by cluster_split.tsv
+    """
 
     def __init__(self, target: str = "PARP1", n_train: int = 10000, seed: int = 42):
         self.target = target

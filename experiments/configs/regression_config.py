@@ -1,23 +1,21 @@
 from dataclasses import dataclass
 
+from tanimoto_gp import TanimotoGP_Params
+
+from molcollisions.fingerprints import MolecularFingerprint
+
 
 @dataclass
 class RegressionExperiment:
     """Contains experiment configuration."""
 
     # Core experiment details
-    dataset: str
-    fingerprint: str
+    target: str
+    fingerprint: MolecularFingerprint
     n_train: int = 10000
-
-    # Fingerprint configuration
-    radius: int = 2
-    fp_size: int = 2048
-    sparse: bool = True
 
     # Experiment settings
     optimize_hp: bool = False
-    n_trials: int = 30
     seed: int = 42
 
 
@@ -25,8 +23,10 @@ class RegressionExperiment:
 class RegressionResults:
     """Contains regression experiment results."""
 
-    config: RegressionExperiment
+    experiment: RegressionExperiment
 
     r2: float
     mse: float
     mae: float
+
+    gp_params: TanimotoGP_Params

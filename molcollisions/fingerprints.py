@@ -7,7 +7,7 @@ from rdkit.Chem import rdFingerprintGenerator
 cache_size = 300_000
 
 
-class BaseFP(ABC):
+class MolecularFingerprint(ABC):
     def __init__(self, radius: int = 2, count: bool = True):
         self.radius = radius
         self.count = count
@@ -29,7 +29,7 @@ class BaseFP(ABC):
         return mol
 
 
-class SparseFP(BaseFP):
+class SparseFP(MolecularFingerprint):
     """
     Sparse fingerprint implementation - no hash collisions.
     """
@@ -57,7 +57,7 @@ class SparseFP(BaseFP):
             return self.fpgen.GetSparseFingerprint(mol)
 
 
-class CompressedFP(BaseFP):
+class CompressedFP(MolecularFingerprint):
     """
     Compressed fingerprint implementation - fixed size with potential hash collisions
     """

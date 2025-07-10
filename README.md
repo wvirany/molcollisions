@@ -18,6 +18,7 @@ pre-commit install
 ```toml
 dependencies = [
     "numpy",
+    "pandas",
     "rdkit",
     "jax",
     "tanimoto_gp @ git+https://github.com/wvirany/tanimoto-gp.git@fixed-gp-stable",
