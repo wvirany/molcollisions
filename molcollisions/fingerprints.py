@@ -28,6 +28,11 @@ class MolecularFingerprint(ABC):
             raise ValueError(f"Could not parse SMILES: {smiles}")
         return mol
 
+    @abstractmethod
+    def get_fp_type(self) -> str:
+        """Return True if this is a sparse fingerprint."""
+        pass
+
 
 class SparseFP(MolecularFingerprint):
     """
@@ -55,6 +60,9 @@ class SparseFP(MolecularFingerprint):
             return self.fpgen.GetSparseCountFingerprint(mol)
         else:
             return self.fpgen.GetSparseFingerprint(mol)
+
+    def get_fp_type(self) -> str:
+        return f"sparse-r{self.radius}"
 
 
 class CompressedFP(MolecularFingerprint):
@@ -85,3 +93,6 @@ class CompressedFP(MolecularFingerprint):
             return self.fpgen.GetCountFingerprint(mol)
         else:
             return self.fpgen.GetFingerprint(mol)
+
+    def get_fp_type(self) -> str:
+        return f"compressed{self.fp_size}-r{self.radius}"

@@ -1,6 +1,6 @@
 import jax.numpy as jnp
 
-from molcollisions.fingerprints import CompressedFP, SparseFP
+from molcollisions.fingerprints import CompressedFP, MolecularFingerprint, SparseFP
 
 
 def optimize_params():
@@ -11,12 +11,12 @@ def inverse_softplus(x):
     return jnp.log(jnp.exp(x) - 1)
 
 
-def fp_from_str(fp: str):
+def fp_from_str(fp: str) -> MolecularFingerprint:
     """
     Convert fingerprint config from string to MolecularFingerprint objects.
 
     Args:
-        fp: Input looks like
+        fp: Input takes the form {fp_type}{fp_size}-r{radius}, e.g.
         - "sparse-r2",
         - "compressed2048-r4",
         etc.

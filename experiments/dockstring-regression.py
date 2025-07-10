@@ -1,4 +1,5 @@
 import argparse
+import os
 
 import jax.numpy as jnp
 import tanimoto_gp
@@ -52,6 +53,7 @@ def main(
     fp_config: str = "sparse-r2",
     n_train: int = 10000,
     optimize_hp: bool = False,
+    save_results: bool = False,
 ):
 
     # Convert string-formatted fp config to MolecularFingerprint object
@@ -61,9 +63,18 @@ def main(
         target=target, fingerprint=fp, n_train=n_train, optimize_hp=optimize_hp
     )
 
+    # Initialize trial ID as SLURM array ID
+    slurm_array_id = os.getenv("SLURM_ARRAY_TASK_ID")
+
+    if slurm_array_id is not None:
+        trial_id = int(slurm_array_id)
+        experiment.trial_id = trial_id
+        experiment.seed = trial_id
+
     results = run_single_trial(experiment)
 
-    print(results)
+    if save_results:
+        results.save()
 
 
 if __name__ == "__main__":
@@ -73,6 +84,7 @@ if __name__ == "__main__":
     parser.add_argument("--fp_config", type=str, default="sparse-r2")
     parser.add_argument("--n_train", type=int, default=10000)
     parser.add_argument("--optimize_hp", action="store_true")
+    parser.add_argument("--save_results", action="store_true")
     args = parser.parse_args()
 
     main(
@@ -80,4 +92,5 @@ if __name__ == "__main__":
         fp_config=args.fp_config,
         n_train=args.n_train,
         optimize_hp=args.optimize_hp,
+        save_results=args.save_results,
     )
