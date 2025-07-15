@@ -88,7 +88,7 @@ Batch experiments from config file:
 python regression.py --config regression_experiments.yaml
 
 # Submit to SLURM with 30 trials per experiment
-python regression.py --config regression_experiments.yaml --submit
+python regression.py --config regression_experiments.yaml --submit --save_results
 ```
 
 Configuration files must be in YAML format:
@@ -120,4 +120,4 @@ if slurm_array_id is not None:
     experiment.seed = int(slurm_array_id)
 ```
 
-The SLURM job is create from a template, which can be configured based on your system.
+The SLURM job is created from a template, which can be configured based on your system.
