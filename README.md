@@ -1,4 +1,4 @@
-## Development Setup
+# Development Setup
 
 ```bash
 # Clone and install
@@ -11,7 +11,7 @@ pre-commit install
 ```
 
 
-### Dependencies
+## Dependencies
 
 **Core libraries:**
 
@@ -44,3 +44,80 @@ pre-commit run --all-files
 # Type checking (manual)
 mypy molcollisions/
 ```
+
+
+# Experiments
+
+## Regression experiments
+
+Experiments can either be run programmatically or via the command line:
+
+### Programmatic usage:
+
+```py
+from regression import RegressionExperiment, run_single_trial
+from molcollisions.fingerprints import SparseFP
+
+# Create experiment
+experiment = RegressionExperiment(
+    target="PARP1",
+    fingerprint=SparseFP(),
+    n_train=100,
+    optimize_hp=False
+)
+
+# Run single trial
+results = run_single_trial(experiment)
+print(results.r2)
+```
+
+### Command line usage:
+
+The user has the option to submit a single job or specify parameters using a configuration file:
+
+Single experiment:
+
+```bash
+python regression.py --target PARP1 --fp_config sparse-r2 --n_train 100 --save_results
+```
+
+Batch experiments from config file:
+
+```bash
+# View experiments (dry run)
+python regression.py --config regression_experiments.yaml
+
+# Submit to SLURM with 30 trials per experiment
+python regression.py --config regression_experiments.yaml --submit
+```
+
+Configuration files must be in YAML format:
+
+```yaml
+name: "regression_experiments"
+targets: ["PARP1", "F2"]
+n_train: [10000]
+optimize_hp: [true, false]
+
+fingerprints:
+  - sparse-r2
+  - compressed2048-r2
+
+# SLURM job parameters
+n_trials: 10
+time: "8:00:00"
+mem: "128G"
+```
+
+A different experiment is generated for each combination of `target`, `n_train`, `optimize_hp`, and `fingerprint`. Each experiment is run `n_trials` different times with a seed corresponding to the SLRUM array ID:
+
+```py
+# Initialize trial ID as SLURM array ID
+slurm_array_id = os.getenv("SLURM_ARRAY_TASK_ID")
+
+if slurm_array_id is not None:
+    experiment.trial_id = int(slurm_array_id)
+    experiment.seed = int(slurm_array_id)
+```
+
+The SLURM job is create from a template, which can be configured based on your system.
