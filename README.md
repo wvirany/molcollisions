@@ -55,7 +55,7 @@ Experiments can either be run programmatically or via the command line:
 ### Programmatic usage:
 
 ```py
-from regression import RegressionExperiment, run_single_trial
+from regression import RegressionExperiment, single_regression_trial
 from molcollisions.fingerprints import SparseFP
 
 # Create experiment
@@ -67,7 +67,7 @@ experiment = RegressionExperiment(
 )
 
 # Run single trial
-results = run_single_trial(experiment)
+results = single_regression_trial(experiment)
 print(results.r2)
 ```
 

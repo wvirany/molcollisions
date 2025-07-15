@@ -13,20 +13,19 @@ from tanimoto_gp import ConstantMeanTanimotoGP, TanimotoGP_Params
 
 from molcollisions.datasets import Dockstring
 from molcollisions.fingerprints import MolecularFingerprint
-from molcollisions.utils import fp_from_str, inverse_softplus, optimize_params
+from molcollisions.utils import fp_from_str, inverse_softplus, optimize_gp_params
 
 
 @dataclass
 class RegressionExperiment:
-    """Contains experiment configuration."""
+    """Contains regression experiment configuration."""
 
-    # Core experiment details
+    # Experiment details
     target: str
     fingerprint: MolecularFingerprint
     n_train: int = 10000
-
-    # Experiment settings
     optimize_hp: bool = False
+
     trial_id: int = 0
     seed: int = 42
 
@@ -138,7 +137,7 @@ def submit_slurm_jobs(
         time.sleep(1)
 
 
-def run_single_trial(experiment: RegressionExperiment) -> RegressionResults:
+def single_regression_trial(experiment: RegressionExperiment) -> RegressionResults:
     """Run a single regression trial."""
 
     dataset = Dockstring(target=experiment.target, n_train=experiment.n_train, seed=experiment.seed)
@@ -161,7 +160,7 @@ def run_single_trial(experiment: RegressionExperiment) -> RegressionResults:
     # Optimize GP hyperparameters wrt MLL
     if experiment.optimize_hp:
         print("Optimizing hyperparameters...")
-        gp_params = optimize_params(gp, gp_params)
+        gp_params = optimize_gp_params(gp, gp_params)
 
     # Make predictions
     print("Making predictions...")
@@ -211,7 +210,7 @@ def main(
             experiment.trial_id = int(slurm_array_id)
             experiment.seed = int(slurm_array_id)
 
-        results = run_single_trial(experiment)
+        results = single_regression_trial(experiment)
         print(f"Results: r2: {results.r2:.3f} | mse: {results.mse:.3f} | mae: {results.mae:.3f}")
 
         if save_results:

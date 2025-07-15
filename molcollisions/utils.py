@@ -6,7 +6,7 @@ import tanimoto_gp
 from molcollisions.fingerprints import CompressedFP, MolecularFingerprint, SparseFP
 
 
-def optimize_params(gp, gp_params, tol=1e-3, max_iters=10000):
+def optimize_gp_params(gp, gp_params, tol=1e-3, max_iters=10000):
     """
     Optimize GP parameters until convergence or max steps reached
 
