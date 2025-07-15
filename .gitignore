@@ -76,6 +76,7 @@ results/
 profiles/
 data/
 figures/  # Generated plots (unless you want to version them)
+tmp/
 
 # OS-specific files
 .DS_Store

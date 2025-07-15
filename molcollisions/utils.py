@@ -1,10 +1,83 @@
+import jax
 import jax.numpy as jnp
+import optax
+import tanimoto_gp
 
 from molcollisions.fingerprints import CompressedFP, MolecularFingerprint, SparseFP
 
 
-def optimize_params():
-    raise NotImplementedError
+def optimize_params(gp, gp_params, tol=1e-3, max_iters=10000):
+    """
+    Optimize GP parameters until convergence or max steps reached
+
+    Args:
+        gp: Gaussian Process instance
+        gp_params: Initial parameters
+        tol: Tolerance for convergence (default 1e-3)
+        max_steps: Maximum optimization steps (default 10000)
+    """
+
+    # Compute minimum noise value, prevents numerical instablility due to small noise
+    var_y = jnp.var(gp._y_train)
+    min_noise = 1e-4 * var_y
+    min_raw_noise = jnp.log(jnp.exp(min_noise) - 1)
+
+    print(f"Start MLL: {gp.marginal_log_likelihood(params=gp_params)}")
+
+    optimizer = optax.adam(1e-2)
+    opt_state = optimizer.init(gp_params)
+
+    # Perform one step of gradient descent
+    def step(params, opt_state):
+        loss, grads = jax.value_and_grad(lambda x: -gp.marginal_log_likelihood(x))(params)
+        grad_norm = jnp.linalg.norm(jnp.array(grads))
+        updates, opt_state = optimizer.update(grads, opt_state)
+        params = optax.apply_updates(params, updates)
+
+        min_noise_reached = False
+
+        # Gradient clipping for stability
+        noise = tanimoto_gp.TRANSFORM(params.raw_noise)
+        if noise < min_noise:
+            params = tanimoto_gp.TanimotoGP_Params(
+                raw_amplitude=params.raw_amplitude, raw_noise=min_raw_noise, mean=gp_params.mean
+            )
+            min_noise_reached = True
+
+        return params, opt_state, grad_norm, loss, min_noise_reached
+
+    # Run optimization loop
+    for i in range(max_iters):
+
+        gp_params, opt_state, grad_norm, loss, min_noise_reached = step(gp_params, opt_state)
+
+        if min_noise_reached:
+            print("Minimum noise value reached, stopping early")
+            break
+
+        if grad_norm < tol:
+            print(f"Converged after {i+1} steps, gradient norm = {grad_norm}")
+            break
+
+        if i % 1000 == 0:
+            print(f"Iteration {i}:")
+            print(f"  Loss: {loss}")
+            print(f"  Gradient norm: {grad_norm}")
+            print(f"  Params: {gp_params}")
+            print(f"  Natural params: {natural_params(gp_params)}")
+
+    print(f"End MLL (after optimization): {-loss}")
+    print(f"End GP parameters (after optimization): {gp_params}")
+
+    return gp_params
+
+
+def natural_params(gp_params):
+    """Returns the natural parameters (after softplus transform, positive values)"""
+    return [
+        float(tanimoto_gp.TRANSFORM(gp_params.raw_amplitude)),
+        float(tanimoto_gp.TRANSFORM(gp_params.raw_noise)),
+    ]
 
 
 def inverse_softplus(x):

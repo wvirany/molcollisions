@@ -1,7 +1,6 @@
 import argparse
 import os
 import pickle
-import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -31,6 +30,11 @@ class RegressionExperiment:
     trial_id: int = 0
     seed: int = 42
 
+    # SLURM job parameters
+    n_trials: int = 1
+    time: str = "8:00:00"
+    mem: str = "16G"
+
 
 @dataclass
 class RegressionResults:
@@ -52,10 +56,8 @@ class RegressionResults:
         results_path = Path("results") / "regression" / self.experiment.target / fp_config
 
         # Save results to pickle file
-        trial_file = results_path / f"trial_{self.experiment.trial_id:03d}.pkl"
-
+        trial_file = results_path / f"trial_{self.experiment.trial_id:02d}.pkl"
         os.makedirs(os.path.dirname(trial_file), exist_ok=True)
-
         with open(trial_file, "wb") as f:
             pickle.dump(results, f)
 
@@ -79,6 +81,9 @@ def create_experiments_from_yaml(config_file: Path) -> List[RegressionExperiment
                         fingerprint=fp_from_str(fp_config),
                         optimize_hp=optimize_hp,
                         n_train=n_train,
+                        n_trials=config["n_trials"],
+                        time=config["time"],
+                        mem=config["mem"],
                     )
                     experiments.append(exp)
 
@@ -88,44 +93,48 @@ def create_experiments_from_yaml(config_file: Path) -> List[RegressionExperiment
 def submit_slurm_jobs(
     experiments: List[RegressionExperiment],
     save_results: bool = False,
-    n_trials: int = 30,
 ):
-    """Submit SLURM array jobs for each experiment configuration."""
+    """Submit SLURM array job for each experiment configuration."""
 
-    for i, experiment in enumerate(experiments):
+    # Read the template
+    with open("templates/regression_job.sh", "r") as f:
+        template = f.read()
+
+    for exp in experiments:
         # Create unique job name for this experiment
-        job_name = f"regression-{experiment.target}-{experiment.fingerprint.get_fp_type()}"
-        if experiment.optimize_hp:
+        fp_config = exp.fingerprint.get_fp_type()
+        job_name = fp_config
+        if exp.optimize_hp:
             job_name += "-opt"
 
         # Create log directory
-        log_dir = Path("logs") / "regression" / job_name
+        log_dir = Path("logs") / "regression" / f"{exp.target}" / job_name
         log_dir.mkdir(parents=True, exist_ok=True)
 
-        # Build Python command
-        python_cmd = f"""python regression.py \\
-            --target {experiment.target} \\
-            --fp_config {experiment.fingerprint.get_fp_type()} \\
-            --n_train {experiment.n_train} \\
-            {"--optimize_hp" if experiment.optimize_hp else ''} \\
-            {"--save_results" if save_results else ''}"""
+        # Fill in SLURM template
+        script_content = template.format(
+            job_name=job_name,
+            n_trials=exp.n_trials - 1,  # Number of jobs in array is 0-indexed
+            time=exp.time,
+            mem=exp.mem,
+            log_dir=log_dir,
+            target=exp.target,
+            fp_config=fp_config,
+            n_train=exp.n_train,
+            optimize_hp_flag=" --optimize_hp" if exp.optimize_hp else "",
+            save_results_flag=" --save_results" if save_results else "",
+        )
 
-        # Submit SLURM array job
-        slurm_cmd = f"""sbatch \\
-            --job-name={job_name} \\
-            --array=0-{n_trials-1} \\
-            --partition=amilan \\
-            --qos=normal \\
-            --time=8:00:00 \\
-            --nodes=1 \\
-            --mem=128G \\
-            --output={log_dir}/%a.out \\
-            --wrap="module purge && module load python && module load anaconda && \\
-                    conda activate molcollisions && \\
-                    {python_cmd}" """
+        # Write and submit temporary job script
+        script_path = f"tmp/temp_{job_name}.sh"
+        with open(script_path, "w") as f:
+            f.write(script_content)
 
-        print(f"Submitting: {job_name}")
-        subprocess.run(slurm_cmd, shell=True, check=True)
+        print(f"Submitting job: {exp.target}/{job_name}")
+        # subprocess.run(["sbatch", script_path], check=True)
+
+        # Remove temporary job script
+        os.remove(script_path)
         time.sleep(1)
 
 

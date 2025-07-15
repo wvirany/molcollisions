@@ -1,0 +1,17 @@
+name: "regression_experiments"
+targets: ["PARP1", "F2"]
+n_train: [10000]
+optimize_hp: [true, false]
+
+fingerprints:  # TODO: Add "sort and slice" fingerprints
+  - sparse-r2
+  - compressed512-r2
+  - compressed1024-r2
+  - compressed2048-r2
+  - compressed4096-r2
+
+
+# SLURM job parameters
+n_trials: 10
+time: "8:00:00"
+mem: "128G"
