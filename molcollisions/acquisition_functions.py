@@ -58,7 +58,7 @@ def ucb(X: jnp.ndarray, gp: FixedTanimotoGP, gp_params: TanimotoGP_Params, beta:
 
 def uniform(X: jnp.ndarray):
     """
-    Randomly chooses elements of X according to uniform distribution.
+    Returns random index of X according to uniform distribution.
     """
 
     return np.random.randint(len(X))
