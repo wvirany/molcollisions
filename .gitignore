@@ -44,7 +44,7 @@ coverage.xml
 
 # Jupyter Notebook
 .ipynb_checkpoints
-*-dev.ipynb  # Your existing pattern for dev notebooks
+*-dev.ipynb
 dev/
 
 # IPython
