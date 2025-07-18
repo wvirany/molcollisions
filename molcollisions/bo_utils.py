@@ -83,3 +83,14 @@ def find_top10_avg(x):
     top10 = x[indices]
 
     return np.mean(top10)
+
+
+def bo_split(X: np.ndarray, y: np.ndarray, n_init: int = 1000):
+    """
+    Split dataset into initial / candidate pool for BO loop.
+
+    Initial dataset is created by sampling n_init molecules from
+    bottom 80% of dataset.
+    """
+
+    raise NotImplementedError("Need to implement bo_split()")

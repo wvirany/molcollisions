@@ -221,7 +221,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
-    # Submit a YAML config file with
+    # Submit a YAML config file
     parser.add_argument("--config", type=str, help="YAML config for experiment generation")
     parser.add_argument(
         "--submit", action="store_true", help="Submit SLURM jobs (use with --config)"
@@ -232,7 +232,10 @@ if __name__ == "__main__":
     parser.add_argument("--fp_config", type=str, default="sparse-r2")
     parser.add_argument("--n_train", type=int, default=10000)
     parser.add_argument("--optimize_hp", action="store_true")
+
+    # Option to save results
     parser.add_argument("--save_results", action="store_true")
+
     args = parser.parse_args()
 
     main(
