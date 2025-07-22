@@ -19,7 +19,7 @@ def ei(X: jnp.ndarray, gp: FixedTanimotoGP, gp_params: TanimotoGP_Params, epsilo
 
     # Find incumbent by taking posterior mean at best observed point
     best_idx = jnp.argmax(gp._y_train)
-    best_x = [gp.smiles_train[best_idx]]
+    best_x = [gp._smiles_train[best_idx]]
     incumbent_mean, _ = gp.predict_y(gp_params, best_x, full_covar=False, from_train=True)
     incumbent = incumbent_mean[0]
 
@@ -60,5 +60,7 @@ def uniform(X: jnp.ndarray):
     """
     Returns random index of X according to uniform distribution.
     """
+
+    # Maybe need to add gp.predict here. See line 78 of dockstring-bo.py
 
     return np.random.randint(len(X))

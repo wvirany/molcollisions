@@ -238,6 +238,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    if args.save_results and args.n_train != 10000:
+        raise ValueError(f"Only saving results for n_train = 10000. Got n_train = {args.n_train}")
+
     main(
         config=args.config,
         submit=args.submit,

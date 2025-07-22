@@ -1,5 +1,6 @@
 import argparse
 import os
+import pickle
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List
@@ -44,10 +45,32 @@ class BOResults:
     experiment: BOExperiment
     best: np.ndarray
     top10: np.ndarray
+    X_observed: np.ndarray
+    y_observed: np.ndarray
     gp_params: TanimotoGP_Params
 
     def save(self):
-        raise NotImplementedError
+        """Save experiment results to pickle file."""
+
+        results = {
+            "best": self.best,
+            "top10": self.top10,
+            "X_observed": self.X_observed,
+            "y_observed": self.y_observed,
+            "gp_params": self.gp_params,
+        }
+
+        # Build results path
+        fp_config = self.experiment.fingerprint.get_fp_type()
+        results_path = Path("results") / "bo" / self.experiment.target / fp_config
+
+        # Save results to pickle file
+        trial_file = results_path / f"trial_{self.experiment.trial_id:02d}.pkl"
+        os.makedirs(os.path.dirname(trial_file), exist_ok=True)
+        with open(trial_file, "wb") as f:
+            pickle.dump(results, f)
+
+        print(f"Results saved to {trial_file}")
 
 
 def create_experiments_from_yaml(config_file: Path) -> List[BOExperiment]:
@@ -65,11 +88,11 @@ def single_bo_trial(experiment: BOExperiment) -> BOResults:
     smiles_train, smiles_test, y_train, y_test = dataset.load()
 
     X = np.concatenate([smiles_train, smiles_test])
-    # Minimizing docksing scores corresponds to maximizing negative docking scores
+    # Minimizing docking scores corresponds to maximizing negative docking scores
     y = -np.concatenate([y_train, y_test])
 
     # Create initial observed datasets and unobserved candidate pools
-    X_init, X, y_init, y = bo_split(X, y, experiment.n_init)
+    X_init, X, y_init, y = bo_split(X, y, experiment.n_init, experiment.seed)
 
     # Initialize GP parameters
     amp = jnp.var(y_init)
@@ -88,7 +111,7 @@ def single_bo_trial(experiment: BOExperiment) -> BOResults:
     gp = FixedTanimotoGP(gp_params, experiment.fingerprint, X_init, y_init)
 
     # Run BO procedure
-    best, top10, X_observed, y_observed, gp_params = bo_loop(
+    best, top10, X_observed, y_observed = bo_loop(
         X=X,
         y=y,
         X_observed=X_init,
@@ -183,6 +206,12 @@ if __name__ == "__main__":
     parser.add_argument("--save_results", action="store_true")
 
     args = parser.parse_args()
+
+    # I currently only allow one config of n_init, budget to be saved to keep 'results/' directory clean
+    if args.save_results and (args.n_init != 1000 or args.budget != 1000):
+        raise ValueError(
+            f"Only saving results for n_init, budget = 1000. Got n_init = {args.n_init}, budget = {args.budget}"
+        )
 
     main(
         config=args.config,

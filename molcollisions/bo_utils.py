@@ -70,7 +70,7 @@ def bo_loop(
         gp.add_observation(gp_params, idx, y_new)
 
     print(f"Best observed molecule: {np.max(best):0.3f} | Top 10: {top10[-1]}")
-    return best, top10, X_observed, y_observed, gp
+    return best, top10, X_observed, y_observed
 
 
 def find_top10_avg(x):
@@ -85,12 +85,41 @@ def find_top10_avg(x):
     return np.mean(top10)
 
 
-def bo_split(X: np.ndarray, y: np.ndarray, n_init: int = 1000):
+def bo_split(X_full: np.ndarray, y_full: np.ndarray, n_init: int = 1000, trial_seed: int = 42):
     """
     Split dataset into initial / candidate pool for BO loop.
 
     Initial dataset is created by sampling n_init molecules from
     bottom 80% of dataset.
-    """
 
-    raise NotImplementedError("Need to implement bo_split()")
+    Args:
+        X_full: Entire candidate pool
+        y_full: Docking scores corresponding to X_full
+        n_init: Number of obsservations in initial dataset
+        trial_seed: RNG random seed
+
+    Returns:
+        X_init: Initial observations
+        X: Entire candidate pool minus X_init
+        y_init: Docking scores of initial observations
+        y: Docking scores corresponding to X
+    """
+    rng = np.random.RandomState(trial_seed)
+
+    # Find docking score corresponding to 80th percentile
+    cutoff = np.percentile(y_full, 80)
+
+    # Sample n_init molecules from bottom 80% of dataset
+    bottom_80_indices = np.where(y_full <= cutoff)[0]
+    sampled_indices = rng.choice(bottom_80_indices, size=n_init, replace=False)
+
+    # Get remaining molecules from dataset
+    top_20_indices = np.where(y_full > cutoff)[0]
+    bottom_80_complement = np.setdiff1d(bottom_80_indices, sampled_indices)
+    full_complement = np.concatenate([bottom_80_complement, top_20_indices])
+
+    # Create initial dataset / candidate pool
+    X_init, y_init = X_full[sampled_indices], y_full[sampled_indices]
+    X, y = X_full[full_complement], y_full[full_complement]
+
+    return X_init.tolist(), X.tolist(), y_init, y
