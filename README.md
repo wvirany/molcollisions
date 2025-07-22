@@ -48,9 +48,7 @@ mypy molcollisions/
 
 # Experiments
 
-## Regression experiments
-
-Experiments can either be run programmatically or via the command line:
+Experiments can either be run programmatically or via the command line. The following code snippets show how to run regression experiments, but the interface is the same for classification or BO experiments.
 
 ### Programmatic usage:
 
