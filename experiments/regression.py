@@ -9,7 +9,6 @@ from typing import List
 
 import jax.numpy as jnp
 import yaml
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from tanimoto_gp import ConstantMeanTanimotoGP, TanimotoGP_Params
 
 from molcollisions.datasets import Dockstring
@@ -43,9 +42,6 @@ class RegressionResults:
     experiment: RegressionExperiment
     mean_preds: jnp.ndarray
     cov_preds: jnp.ndarray
-    r2: float
-    mse: float
-    mae: float
     gp_params: TanimotoGP_Params
 
     def save(self):
@@ -54,9 +50,6 @@ class RegressionResults:
         results = {
             "mean_preds": self.mean_preds,
             "cov_preds": self.cov_preds,
-            "r2": self.r2,
-            "mse": self.mse,
-            "mae": self.mae,
             "gp_params": self.gp_params,
         }
 
@@ -176,20 +169,10 @@ def single_regression_trial(experiment: RegressionExperiment) -> RegressionResul
     print("Making predictions...")
     mean, cov = gp.predict_y(gp_params, smiles_test, full_covar=False)
 
-    print(mean.shape, cov.shape)
-
-    # Compute metrics
-    r2 = r2_score(y_test, mean)
-    mse = mean_squared_error(y_test, mean)
-    mae = mean_absolute_error(y_test, mean)
-
     return RegressionResults(
         experiment=experiment,
         mean_preds=mean,
         cov_preds=cov,
-        r2=r2,
-        mse=mse,
-        mae=mae,
         gp_params=gp_params,
     )
 
@@ -231,7 +214,6 @@ def main(
             experiment.seed = int(slurm_array_id)
 
         results = single_regression_trial(experiment)
-        print(f"Results: r2: {results.r2:.3f} | mse: {results.mse:.3f} | mae: {results.mae:.3f}")
 
         if save_results:
             results.save()
@@ -258,6 +240,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    # Currently only allowing one config of n_train to be saved to keep 'results/' directory clean
     if args.save_results and args.n_train != 10000:
         raise ValueError(f"Only saving results for n_train = 10000. Got n_train = {args.n_train}")
 

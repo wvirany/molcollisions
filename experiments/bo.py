@@ -1,15 +1,18 @@
 import argparse
 import os
 import pickle
+import subprocess
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List
 
 import jax.numpy as jnp
 import numpy as np
+import yaml
 from tanimoto_gp import FixedTanimotoGP, TanimotoGP_Params
 
-from molcollisions.acquisition import ei, ucb, uniform
+from molcollisions import acquisition
 from molcollisions.bo_utils import bo_loop, bo_split
 from molcollisions.datasets import Dockstring
 from molcollisions.fingerprints import MolecularFingerprint
@@ -26,7 +29,7 @@ class BOExperiment:
 
     n_init: int = 1000
     budget: int = 1000
-    acquisition_func: str = "ei"
+    acq_func: str = "ei"
     epsilon: float = 0.01
 
     trial_id: int = 0
@@ -62,7 +65,9 @@ class BOResults:
 
         # Build results path
         fp_config = self.experiment.fingerprint.get_fp_type()
-        results_path = Path("results") / "bo" / self.experiment.target / fp_config
+        results_path = (
+            Path("results") / "bo" / self.experiment.target / self.experiment.acq_func / fp_config
+        )
 
         # Save results to pickle file
         trial_file = results_path / f"trial_{self.experiment.trial_id:02d}.pkl"
@@ -74,11 +79,75 @@ class BOResults:
 
 
 def create_experiments_from_yaml(config_file: Path) -> List[BOExperiment]:
-    raise NotImplementedError("Need to implement create_experiments_from_yaml()")
+    """Create list of experiments from YAML config file"""
+
+    with open(config_file, "r") as f:
+        config = yaml.safe_load(f)
+
+    experiments = []
+
+    for target in config["targets"]:
+        for n_init in config["n_init"]:
+            for budget in config["budget"]:
+                for acq_func in config["acq_funcs"]:
+                    for fp_config in config["fingerprints"]:
+                        exp = BOExperiment(
+                            target=target,
+                            fingerprint=fp_from_str(fp_config),
+                            n_init=n_init,
+                            budget=budget,
+                            acq_func=acq_func,
+                            n_trials=config["n_trials"],
+                            time=config["time"],
+                            mem=config["mem"],
+                        )
+                        experiments.append(exp)
+
+    return experiments
 
 
 def submit_slurm_jobs(experiments: List[BOExperiment], save_results: bool = False):
-    raise NotImplementedError("Need to implement submit_slurm_jobs()")
+    """Submit SLURM array job for each experiment configuration"""
+
+    # Read the template
+    with open("templates/bo_job.sh", "r") as f:
+        template = f.read()
+
+    for exp in experiments:
+        # Create unique job name for each experiment
+        fp_config = exp.fingerprint.get_fp_type()
+        job_name = fp_config
+
+        # Create log directory
+        log_dir = Path("logs") / "bo" / f"{exp.target}" / f"{exp.acq_func}" / job_name
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        # Fill in SLURM template
+        script_content = template.format(
+            job_name=job_name,
+            n_trials=exp.n_trials - 1,  # Number of jobs in array is 0-indexed
+            time=exp.time,
+            mem=exp.mem,
+            log_dir=log_dir,
+            target=exp.target,
+            fp_config=fp_config,
+            n_init=exp.n_init,
+            budget=exp.budget,
+            acq_func=exp.acq_func,
+            save_results_flag=" --save_results" if save_results else "",
+        )
+
+        # Write and submit temporary job script
+        script_path = f"tmp/temp_{job_name}.sh"
+        with open(script_path, "w") as f:
+            f.write(script_content)
+
+        print(f"Submitting job: {exp.target} / {exp.acq_func} / {job_name}")
+        subprocess.run(["sbatch", script_path], check=True)
+
+        # Remove temporary job script
+        os.remove(script_path)
+        time.sleep(1)
 
 
 def single_bo_trial(experiment: BOExperiment) -> BOResults:
@@ -110,6 +179,14 @@ def single_bo_trial(experiment: BOExperiment) -> BOResults:
     print("Building GP...")
     gp = FixedTanimotoGP(gp_params, experiment.fingerprint, X_init, y_init)
 
+    # Convert string-format acquisition function to Callable
+    if experiment.acq_func == "ei":
+        acq_func = acquisition.ei
+    elif experiment.acq_func == "ucb":
+        acq_func = acquisition.ucb
+    elif experiment.acq_func == "uniform":
+        acq_func = acquisition.uniform
+
     # Run BO procedure
     best, top10, X_observed, y_observed = bo_loop(
         X=X,
@@ -118,7 +195,7 @@ def single_bo_trial(experiment: BOExperiment) -> BOResults:
         y_observed=y_init,
         gp=gp,
         gp_params=gp_params,
-        acq_func=experiment.acquisition_func,
+        acq_func=acq_func,
         epsilon=experiment.epsilon,
         num_iters=experiment.budget,
     )
@@ -153,9 +230,7 @@ def main(
         else:
             print(f"Generated {len(experiments)} experiments (dry run)")
             for i, exp in enumerate(experiments):
-                print(
-                    f"  {i}: {exp.target}, {exp.fingerprint.get_fp_type()}, optimize_hp: {exp.optimize_hp}"
-                )
+                print(f"  {i}: {exp.target}, {exp.fingerprint.get_fp_type()}, {exp.acq_func}")
     else:
 
         fp = fp_from_str(fp_config)
@@ -163,15 +238,6 @@ def main(
         experiment = BOExperiment(
             target=target, fingerprint=fp, n_init=n_init, budget=budget, epsilon=epsilon
         )
-
-        if acq_func == "ei":
-            experiment.acquisition_func = ei
-        elif acq_func == "ucb":
-            experiment.acusition_func = ucb
-        elif acq_func == "uniform":
-            experiment.acquisition_func = uniform
-        else:
-            print(f"Invalid acquisition function: {acq_func}")
 
         # Initialize trial ID as SLURM array ID
         slurm_array_id = os.getenv("SLURM_ARRAY_TASK_ID")
@@ -199,7 +265,7 @@ if __name__ == "__main__":
     parser.add_argument("--fp_config", type=str, default="sparse-r2")
     parser.add_argument("--n_init", type=int, default=1000)
     parser.add_argument("--budget", type=int, default=1000)
-    parser.add_argument("--acq_func", type=str, default="ei")
+    parser.add_argument("--acq_func", type=str, default="ei", choices=["ei", "ucb", "uniform"])
     parser.add_argument("--epsilon", type=float, default=0.01)
 
     # Option to save results
@@ -207,7 +273,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # I currently only allow one config of n_init, budget to be saved to keep 'results/' directory clean
+    # Currently only allowing one config of n_init, budget to be saved to keep 'results/' directory clean
     if args.save_results and (args.n_init != 1000 or args.budget != 1000):
         raise ValueError(
             f"Only saving results for n_init, budget = 1000. Got n_init = {args.n_init}, budget = {args.budget}"

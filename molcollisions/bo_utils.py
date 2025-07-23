@@ -2,6 +2,8 @@ import numpy as np
 from scipy import stats
 from tanimoto_gp import FixedTanimotoGP, TanimotoGP_Params
 
+from molcollisions import acquisition
+
 
 def bo_loop(
     X: np.ndarray,
@@ -43,9 +45,17 @@ def bo_loop(
     best.append(np.max(y_observed))
     top10.append(find_top10_avg(y_observed))
 
+    ucb = False
+    if acq_func == acquisition.ucb:
+        ucb = True
+
     for i in range(1, num_iters + 1):
 
         print(f"Iter: {i} | Current best: {np.max(best):0.3f} | Top 10: {top10[-1]:0.3f}")
+
+        # Set adaptive UCB parameter
+        if ucb:
+            epsilon = 10 / i
 
         # Get index of acquired data point
         idx = acq_func(X, gp, gp_params, epsilon)
@@ -71,18 +81,6 @@ def bo_loop(
 
     print(f"Best observed molecule: {np.max(best):0.3f} | Top 10: {top10[-1]}")
     return best, top10, X_observed, y_observed
-
-
-def find_top10_avg(x):
-    """Given a list x, find average of top10 values"""
-
-    if x.size < 10:
-        raise ValueError("Size of array must be larger than 10")
-
-    indices = np.argpartition(x, -10)[-10:]
-    top10 = x[indices]
-
-    return np.mean(top10)
 
 
 def bo_split(X_full: np.ndarray, y_full: np.ndarray, n_init: int = 1000, trial_seed: int = 42):
@@ -123,3 +121,15 @@ def bo_split(X_full: np.ndarray, y_full: np.ndarray, n_init: int = 1000, trial_s
     X, y = X_full[full_complement], y_full[full_complement]
 
     return X_init.tolist(), X.tolist(), y_init, y
+
+
+def find_top10_avg(x):
+    """Given a list x, find average of top10 values"""
+
+    if x.size < 10:
+        raise ValueError("Size of array must be larger than 10")
+
+    indices = np.argpartition(x, -10)[-10:]
+    top10 = x[indices]
+
+    return np.mean(top10)

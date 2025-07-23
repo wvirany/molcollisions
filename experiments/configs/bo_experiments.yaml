@@ -1,16 +1,14 @@
 name: "bo_experiments"
-targets: ["ESR2", "F2", "KIT", "PARP1", "PGR"]
-n_init: 1000
-budget: 1000
-acquisition_functions: ["ei", "ucb", "uniform"]
+targets: ["ESR2"] # ["ESR2", "F2", "KIT", "PARP1", "PGR"]
+n_init: [1000]
+budget: [1000]
+acq_funcs: ["ei"]   # options are ["ei", "ucb", "uniform"]
 
 fingerprints: # TODO: Add "sort and slice" fingerprints
   - sparse-r2
-  - compressed1024-r2
-  - compressed2048-r2
-  - sortslice1024-r2
-  - sortslice2048-r2
+  # - compressed1024-r2
+  # - compressed2048-r2
 
 n_trials: 5
-time: "12:00:00"
-mem: "32G"
+time: "2:00:00"
+mem: "64G"

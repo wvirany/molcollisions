@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name={job_name}
+#SBATCH --job-name=regression-{job_name}
 #SBATCH --array=0-{n_trials}
 #SBATCH --partition=amilan
 #SBATCH --qos=normal
