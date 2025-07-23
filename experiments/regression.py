@@ -1,6 +1,7 @@
 import argparse
 import os
 import pickle
+import subprocess
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -40,6 +41,8 @@ class RegressionResults:
     """Contains regression experiment results."""
 
     experiment: RegressionExperiment
+    mean_preds: jnp.ndarray
+    cov_preds: jnp.ndarray
     r2: float
     mse: float
     mae: float
@@ -48,7 +51,14 @@ class RegressionResults:
     def save(self):
         """Save experiment results to pickle file."""
 
-        results = {"r2": self.r2, "mse": self.mse, "mae": self.mae, "gp_params": self.gp_params}
+        results = {
+            "mean_preds": self.mean_preds,
+            "cov_preds": self.cov_preds,
+            "r2": self.r2,
+            "mse": self.mse,
+            "mae": self.mae,
+            "gp_params": self.gp_params,
+        }
 
         # Build results path
         fp_config = self.experiment.fingerprint.get_fp_type()
@@ -130,7 +140,7 @@ def submit_slurm_jobs(
             f.write(script_content)
 
         print(f"Submitting job: {exp.target}/{job_name}")
-        # subprocess.run(["sbatch", script_path], check=True)
+        subprocess.run(["sbatch", script_path], check=True)
 
         # Remove temporary job script
         os.remove(script_path)
@@ -164,14 +174,24 @@ def single_regression_trial(experiment: RegressionExperiment) -> RegressionResul
 
     # Make predictions
     print("Making predictions...")
-    mean, _ = gp.predict_y(gp_params, smiles_test, full_covar=False)
+    mean, cov = gp.predict_y(gp_params, smiles_test, full_covar=False)
+
+    print(mean.shape, cov.shape)
 
     # Compute metrics
     r2 = r2_score(y_test, mean)
     mse = mean_squared_error(y_test, mean)
     mae = mean_absolute_error(y_test, mean)
 
-    return RegressionResults(experiment=experiment, r2=r2, mse=mse, mae=mae, gp_params=gp_params)
+    return RegressionResults(
+        experiment=experiment,
+        mean_preds=mean,
+        cov_preds=cov,
+        r2=r2,
+        mse=mse,
+        mae=mae,
+        gp_params=gp_params,
+    )
 
 
 def main(

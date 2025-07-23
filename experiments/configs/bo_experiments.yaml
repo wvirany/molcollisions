@@ -8,6 +8,8 @@ fingerprints: # TODO: Add "sort and slice" fingerprints
   - sparse-r2
   - compressed1024-r2
   - compressed2048-r2
+  - sortslice1024-r2
+  - sortslice2048-r2
 
 n_trials: 5
 time: "12:00:00"
