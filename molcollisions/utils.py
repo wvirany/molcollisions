@@ -3,7 +3,7 @@ import jax.numpy as jnp
 import optax
 import tanimoto_gp
 
-from molcollisions.fingerprints import CompressedFP, MolecularFingerprint, SparseFP
+from molcollisions.fingerprints import CompressedFP, MolecularFingerprint, SortSliceFP, SparseFP
 
 
 def optimize_gp_params(gp, gp_params, tol=1e-3, max_iters=10000):
@@ -117,5 +117,8 @@ def fp_from_str(fp: str) -> MolecularFingerprint:
         # Extract size from something like "compressed2048"
         fp_size = int(fp_type[10:])
         return CompressedFP(fp_size=fp_size, radius=radius)
+    elif fp_type.startswith("sortslice"):
+        fp_size = int(fp_type[9:])
+        return SortSliceFP(fp_size=fp_size, radius=radius)
     else:
         raise ValueError(f"Unknown fingerprint type: {fp_type}")

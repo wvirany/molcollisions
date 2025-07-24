@@ -3,12 +3,16 @@ targets: ["PARP1"]
 n_train: [10000]
 optimize_hp: [true, false]
 
-fingerprints:  # TODO: Add "sort and slice" fingerprints
+fingerprints:
   - sparse-r2
-  # - compressed512-r2
-  # - compressed1024-r2
-  # - compressed2048-r2
-  # - compressed4096-r2
+  - compressed512-r2
+  - compressed1024-r2
+  - compressed2048-r2
+  - compressed4096-r2
+  - sortslice512-r2
+  - sortslice1024-r2
+  - sortslice2048-r2
+  - sortslice4098-r2
 
 
 # SLURM job parameters

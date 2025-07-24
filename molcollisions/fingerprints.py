@@ -1,8 +1,12 @@
 from abc import ABC, abstractmethod
 from functools import lru_cache
+from pathlib import Path
 
+import numpy as np
 from rdkit import Chem
 from rdkit.Chem import rdFingerprintGenerator
+from rdkit.DataStructs.cDataStructs import UIntSparseIntVect
+from sort_and_slice_ecfp_featuriser import create_sort_and_slice_ecfp_featuriser
 
 cache_size = 300_000
 
@@ -23,6 +27,7 @@ class MolecularFingerprint(ABC):
         """
         Validate and convert SMILES to RDKit molecule
         """
+
         mol = Chem.MolFromSmiles(smiles)
         if mol is None:
             raise ValueError(f"Could not parse SMILES: {smiles}")
@@ -30,7 +35,6 @@ class MolecularFingerprint(ABC):
 
     @abstractmethod
     def get_fp_type(self) -> str:
-        """Return True if this is a sparse fingerprint."""
         pass
 
 
@@ -96,3 +100,91 @@ class CompressedFP(MolecularFingerprint):
 
     def get_fp_type(self) -> str:
         return f"compressed{self.fp_size}-r{self.radius}"
+
+
+class SortSliceFP(MolecularFingerprint):
+    """
+    Sort&Slice fingerprint implementation - uses substructure pooling as described in
+    Dablander et al. (2024).
+
+    Uses a training dataset (we are primarily using ZINC250K) to select the most
+    prevalent substructures, then creates fixed-size fingerprints by mapping molecules
+    to these learned features.
+    """
+
+    def __init__(
+        self,
+        dataset_path: Path = Path("data/zinc250k.smiles"),
+        radius: int = 2,
+        fp_size: int = 2048,
+        count: bool = True,
+    ):
+        """
+        Initialize Sort&Slice fingerprint.
+
+        Args:
+            dataset_path: Path to SMILES file for training the substructure selector
+            radius: Radius for fingerprint generation
+            fp_size: Fixed size of fingerprint vector
+            count: If True, use count fingerprint; otherwise, use binary
+        """
+        super().__init__(radius, count)
+        self.fp_size = fp_size
+        self.setup_fingerprint(dataset_path, count)
+
+    def load_mols(self, dataset_path: Path, verbose: bool = False):
+        """Load SMILES file and convert to RDKit mol objects."""
+        mols = []
+        failed_count = 0
+
+        current_file_dir = Path(__file__).parent
+        dataset_path = current_file_dir / dataset_path
+
+        with open(dataset_path, "r") as f:
+            lines = f.readlines()
+
+        for line in lines:
+            smiles = line.strip()
+            if smiles:
+                mol = Chem.MolFromSmiles(smiles)
+                if mol is not None:
+                    mols.append(mol)
+                else:
+                    failed_count += 1
+
+        if verbose:
+            print(f"Successfully parsed: {len(mols)} molecules")
+            print(f"Failed to parse: {failed_count} SMILES")
+
+        return mols
+
+    def setup_fingerprint(self, dataset_path: Path, count: bool = False, verbose: bool = False):
+        """Build Sort&Slice featuriser from training molecules."""
+        print("Building Sort&Slice fingerprint...")
+        mols = self.load_mols(dataset_path=dataset_path, verbose=verbose)
+        self.fpgen = create_sort_and_slice_ecfp_featuriser(
+            mols_train=mols, sub_counts=count, print_train_set_info=False
+        )
+
+    @lru_cache(maxsize=cache_size)  # Cache fingerprints for BO performance
+    def __call__(self, smiles: str):
+        """
+        Convert SMILES string to Sort&Slice fingerprint.
+
+        Returns RDKit UIntSparseIntVect for compatibility with Tanimoto similarity.
+        """
+        mol = self._validate_smiles(smiles)
+        fp_array = self.fpgen(mol)
+
+        # Convert numpy array to RDKit UIntSparseIntVect
+        # Find non-zero indices and their values
+        nonzero_indices = np.nonzero(fp_array)[0]
+
+        fp_rdkit = UIntSparseIntVect(self.fp_size)
+        for idx in nonzero_indices:
+            fp_rdkit[int(idx)] = int(fp_array[idx])
+
+        return fp_rdkit
+
+    def get_fp_type(self) -> str:
+        return f"sortslice{self.fp_size}-r{self.radius}"

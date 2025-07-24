@@ -8,7 +8,7 @@ import jax.numpy as jnp
 import numpy as np
 import tanimoto_gp
 
-from molcollisions.fingerprints import CompressedFP, SparseFP
+from molcollisions.fingerprints import CompressedFP, SortSliceFP, SparseFP
 
 # Simple dataset
 smiles = ["CCO", "CCC", "CC"]
@@ -33,6 +33,18 @@ def test_compressed_fp_integration():
 
     # Create fingerprint and GP
     fp_func = CompressedFP(radius=2, count=True, fp_size=2048)
+    gp = tanimoto_gp.ConstantMeanTanimotoGP(fp_func, smiles, y)
+
+    # Basic checks for initialization
+    assert gp._smiles_train == smiles
+    assert gp._K_train_train.shape == (3, 3)
+
+
+def test_sortslice_fp_integration():
+    """Test that SortSliceFP works with ConstantMeanTanimotoGP"""
+
+    # Create fingerprint and GP
+    fp_func = SortSliceFP(radius=2, count=True, fp_size=2048)
     gp = tanimoto_gp.ConstantMeanTanimotoGP(fp_func, smiles, y)
 
     # Basic checks for initialization
