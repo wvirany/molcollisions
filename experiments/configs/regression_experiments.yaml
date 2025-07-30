@@ -1,5 +1,5 @@
 name: "regression_experiments"
-targets: ["PARP1"]
+targets: ["ESR2", "F2", "KIT", "PARP1", "PGR"]
 n_train: [10000]
 optimize_hp: [true, false]
 
@@ -13,7 +13,6 @@ fingerprints:
   - sortslice1024-r2
   - sortslice2048-r2
   - sortslice4098-r2
-
 
 # SLURM job parameters
 n_trials: 10

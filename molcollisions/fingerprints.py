@@ -129,8 +129,11 @@ class SortSliceFP(MolecularFingerprint):
             count: If True, use count fingerprint; otherwise, use binary
         """
         super().__init__(radius, count)
+        self.radius = radius
         self.fp_size = fp_size
-        self.setup_fingerprint(dataset_path, count)
+        self.count = count
+
+        self.setup_fingerprint(dataset_path)
 
     def load_mols(self, dataset_path: Path, verbose: bool = False):
         """Load SMILES file and convert to RDKit mol objects."""
@@ -158,12 +161,16 @@ class SortSliceFP(MolecularFingerprint):
 
         return mols
 
-    def setup_fingerprint(self, dataset_path: Path, count: bool = False, verbose: bool = False):
+    def setup_fingerprint(self, dataset_path: Path, verbose: bool = False):
         """Build Sort&Slice featuriser from training molecules."""
         print("Building Sort&Slice fingerprint...")
         mols = self.load_mols(dataset_path=dataset_path, verbose=verbose)
         self.fpgen = create_sort_and_slice_ecfp_featuriser(
-            mols_train=mols, sub_counts=count, print_train_set_info=False
+            mols_train=mols,
+            max_radius=self.radius,
+            sub_counts=self.count,
+            vec_dimension=self.fp_size,
+            print_train_set_info=False,
         )
 
     @lru_cache(maxsize=cache_size)  # Cache fingerprints for BO performance

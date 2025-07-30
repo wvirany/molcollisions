@@ -31,6 +31,21 @@ This project uses specific forks of existing packages:
 * `tanimoto_gp` - Tanimoto kernel Gaussian processes (forked to provide caching optimizations)
 * `kern_gp` - Kernel computations with Cholesky updates (forked to provide efficient Cholesky factor updates)
 
+**Sort&Slice Fingerprint Dependency**
+
+The `SortSliceFP` fingerprint class depends on the `ECFP-Sort-and-Slice` repository (see [here](https://github.com/MarkusFerdinandDablander/ECFP-Sort-and-Slice)). To set this up:
+
+```bash
+# Clone the ECFP-Sort-and-Slice repo
+git clone https://github.com/MarkusFerdinandDablander/ECFP-Sort-and-Slice.git
+
+# Add to Python path
+export PYTHONPATH=$PYTHONPATH:$(pwd)/ECFP-Sort-and-Slice
+
+# Verify installation
+python -c "from sort_and_slice_ecfp_featuriser import create_sort_and_slice_ecfp_featuriser; print('Success!')"
+```
+
 **Development tools:** `pytest`, `pre-commit`, `black`, `ruff`, `mypy`
 
 **Code quality:**
