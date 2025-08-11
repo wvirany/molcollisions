@@ -116,10 +116,10 @@ def submit_slurm_jobs(experiments: List[BOExperiment], save_results: bool = Fals
     for exp in experiments:
         # Create unique job name for each experiment
         fp_config = exp.fingerprint.get_fp_type()
-        job_name = fp_config
+        job_name = f"{exp.target}-{fp_config}"
 
         # Create log directory
-        log_dir = Path("logs") / "bo" / f"{exp.target}" / f"{exp.acq_func}" / job_name
+        log_dir = Path("logs") / "bo" / f"{exp.target}" / f"{exp.acq_func}" / fp_config
         log_dir.mkdir(parents=True, exist_ok=True)
 
         # Fill in SLURM template

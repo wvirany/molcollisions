@@ -118,7 +118,7 @@ def submit_slurm_jobs(
 
         # Fill in SLURM template
         script_content = template.format(
-            job_name=job_name,
+            job_name=f"{exp.target}-{job_name}",
             n_trials=exp.n_trials - 1,  # Number of jobs in array is 0-indexed
             time=exp.time,
             mem=exp.mem,

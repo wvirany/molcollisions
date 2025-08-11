@@ -14,4 +14,4 @@ fingerprints:
 # SLURM job parameters
 n_trials: 5
 time: "2:00:00"
-mem: "64G"
+mem: "256G"

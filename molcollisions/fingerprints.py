@@ -1,3 +1,4 @@
+import pickle
 from abc import ABC, abstractmethod
 from functools import lru_cache
 from pathlib import Path
@@ -114,7 +115,7 @@ class SortSliceFP(MolecularFingerprint):
 
     def __init__(
         self,
-        dataset_path: Path = Path("data/zinc250k.smiles"),
+        dataset_path: Path = Path("data/zinc250k_mols.pkl"),
         radius: int = 2,
         fp_size: int = 2048,
         count: bool = True,
@@ -137,27 +138,12 @@ class SortSliceFP(MolecularFingerprint):
 
     def load_mols(self, dataset_path: Path, verbose: bool = False):
         """Load SMILES file and convert to RDKit mol objects."""
-        mols = []
-        failed_count = 0
 
         current_file_dir = Path(__file__).parent
         dataset_path = current_file_dir / dataset_path
 
-        with open(dataset_path, "r") as f:
-            lines = f.readlines()
-
-        for line in lines:
-            smiles = line.strip()
-            if smiles:
-                mol = Chem.MolFromSmiles(smiles)
-                if mol is not None:
-                    mols.append(mol)
-                else:
-                    failed_count += 1
-
-        if verbose:
-            print(f"Successfully parsed: {len(mols)} molecules")
-            print(f"Failed to parse: {failed_count} SMILES")
+        with open(dataset_path, "rb") as f:
+            mols = pickle.load(f)
 
         return mols
 
