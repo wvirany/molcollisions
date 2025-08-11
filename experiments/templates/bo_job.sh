@@ -16,4 +16,4 @@ module load python
 module load anaconda
 conda activate molcollisions
 
-python bo.py --target {target} --fp_config {fp_config} --n_init {n_init} --budget {budget} --acq_func {acq_func}{save_results_flag}
+python bo.py --target {target} --fp_config {fp_config} --pool {pool} --n_init {n_init} --budget {budget} --acq_func {acq_func}{save_results_flag}

@@ -7,8 +7,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List
 
-import jax.numpy as jnp
 import numpy as np
+
+# TEMP: memory logging
+import psutil
 import yaml
 from tanimoto_gp import FixedTanimotoGP, TanimotoGP_Params
 
@@ -19,6 +21,12 @@ from molcollisions.fingerprints import MolecularFingerprint
 from molcollisions.utils import fp_from_str, inverse_softplus
 
 
+def log_memory():
+    process = psutil.Process(os.getpid())
+    memory_mb = process.memory_info().rss / 1024 / 1024
+    print(f"Memory usage: {memory_mb:.1f} MB")
+
+
 @dataclass
 class BOExperiment:
     """Contains BO experiment configuration."""
@@ -27,6 +35,7 @@ class BOExperiment:
     target: str
     fingerprint: MolecularFingerprint
 
+    pool: int = 1000000
     n_init: int = 1000
     budget: int = 1000
     acq_func: str = "ei"
@@ -87,21 +96,23 @@ def create_experiments_from_yaml(config_file: Path) -> List[BOExperiment]:
     experiments = []
 
     for target in config["targets"]:
-        for n_init in config["n_init"]:
-            for budget in config["budget"]:
-                for acq_func in config["acq_funcs"]:
-                    for fp_config in config["fingerprints"]:
-                        exp = BOExperiment(
-                            target=target,
-                            fingerprint=fp_from_str(fp_config),
-                            n_init=n_init,
-                            budget=budget,
-                            acq_func=acq_func,
-                            n_trials=config["n_trials"],
-                            time=config["time"],
-                            mem=config["mem"],
-                        )
-                        experiments.append(exp)
+        for pool in config["pool"]:
+            for n_init in config["n_init"]:
+                for budget in config["budget"]:
+                    for acq_func in config["acq_funcs"]:
+                        for fp_config in config["fingerprints"]:
+                            exp = BOExperiment(
+                                target=target,
+                                fingerprint=fp_from_str(fp_config),
+                                pool=pool,
+                                n_init=n_init,
+                                budget=budget,
+                                acq_func=acq_func,
+                                n_trials=config["n_trials"],
+                                time=config["time"],
+                                mem=config["mem"],
+                            )
+                            experiments.append(exp)
 
     return experiments
 
@@ -131,6 +142,7 @@ def submit_slurm_jobs(experiments: List[BOExperiment], save_results: bool = Fals
             log_dir=log_dir,
             target=exp.target,
             fp_config=fp_config,
+            pool=exp.pool,
             n_init=exp.n_init,
             budget=exp.budget,
             acq_func=exp.acq_func,
@@ -153,8 +165,11 @@ def submit_slurm_jobs(experiments: List[BOExperiment], save_results: bool = Fals
 def single_bo_trial(experiment: BOExperiment) -> BOResults:
     """Run a single BO trial."""
 
+    print("Before loading dataset")
+    log_memory()
+
     # Setting n_train = 1000000 to get entire dataset
-    dataset = Dockstring(target=experiment.target, n_train=1000000, seed=experiment.seed)
+    dataset = Dockstring(target=experiment.target, n_train=experiment.pool, seed=experiment.seed)
     smiles_train, smiles_test, y_train, y_test = dataset.load()
 
     X = np.concatenate([smiles_train, smiles_test])
@@ -164,10 +179,13 @@ def single_bo_trial(experiment: BOExperiment) -> BOResults:
     # Create initial observed datasets and unobserved candidate pools
     X_init, X, y_init, y = bo_split(X, y, experiment.n_init, experiment.seed)
 
+    print("After calling bo_split()")
+    log_memory()
+
     # Initialize GP parameters
-    amp = jnp.var(y_init)
+    amp = np.var(y_init)
     noise = 1e-2 * amp
-    train_mean = jnp.mean(y_init)
+    train_mean = np.mean(y_init)
 
     # Pre-softplus parameters (for numerical stability)
     gp_params = TanimotoGP_Params(
@@ -176,9 +194,15 @@ def single_bo_trial(experiment: BOExperiment) -> BOResults:
         mean=train_mean,
     )
 
+    print("Before GP init")
+    log_memory()
+
     # Initialize GP
     print("Building GP...")
     gp = FixedTanimotoGP(gp_params, experiment.fingerprint, X_init, y_init)
+
+    print("After GP init")
+    log_memory()
 
     # Convert string-format acquisition function to Callable
     if experiment.acq_func == "ei":
@@ -216,6 +240,7 @@ def main(
     submit: bool = False,
     target: str = "PARP1",
     fp_config: str = "sparse-r2",
+    pool: int = 1000000,
     n_init: int = 1000,
     budget: int = 1000,
     acq_func: str = "ei",
@@ -237,7 +262,7 @@ def main(
         fp = fp_from_str(fp_config)
 
         experiment = BOExperiment(
-            target=target, fingerprint=fp, n_init=n_init, budget=budget, epsilon=epsilon
+            target=target, fingerprint=fp, pool=pool, n_init=n_init, budget=budget, epsilon=epsilon
         )
 
         # Initialize trial ID as SLURM array ID
@@ -264,6 +289,7 @@ if __name__ == "__main__":
     # Submit individual experiment parameters for a single trial
     parser.add_argument("--target", type=str, default="PARP1")
     parser.add_argument("--fp_config", type=str, default="sparse-r2")
+    parser.add_argument("--pool", type=int, default=1000000)
     parser.add_argument("--n_init", type=int, default=1000)
     parser.add_argument("--budget", type=int, default=1000)
     parser.add_argument("--acq_func", type=str, default="ei", choices=["ei", "ucb", "uniform"])
@@ -285,6 +311,7 @@ if __name__ == "__main__":
         submit=args.submit,
         target=args.target,
         fp_config=args.fp_config,
+        pool=args.pool,
         n_init=args.n_init,
         budget=args.budget,
         acq_func=args.acq_func,

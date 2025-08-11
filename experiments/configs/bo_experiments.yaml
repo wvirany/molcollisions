@@ -1,17 +1,18 @@
 name: "bo_experiments"
 targets: ["ESR2", "F2", "KIT", "PARP1", "PGR"]
+pool: [100000]
 n_init: [1000]
 budget: [1000]
 acq_funcs: ["ei"]   # options are ["ei", "ucb", "uniform"]
 
 fingerprints:
   - sparse-r2
-  - compressed1024-r2
-  - compressed2048-r2
-  - sortslice1024-r2
-  - sortslice2048-r2
+  # - compressed1024-r2
+  # - compressed2048-r2
+  # - sortslice1024-r2
+  # - sortslice2048-r2
 
 # SLURM job parameters
 n_trials: 5
 time: "2:00:00"
-mem: "256G"
+mem: "64G"

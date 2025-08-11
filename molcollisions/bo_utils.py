@@ -1,9 +1,19 @@
+# TEMP: memory logging
+import os
+
 import numpy as np
+import psutil
 from scipy import stats
 from sklearn.metrics import auc
 from tanimoto_gp import FixedTanimotoGP, TanimotoGP_Params
 
 from molcollisions import acquisition
+
+
+def log_memory():
+    process = psutil.Process(os.getpid())
+    memory_mb = process.memory_info().rss / 1024 / 1024
+    print(f"Memory usage: {memory_mb:.1f} MB")
 
 
 def bo_loop(
@@ -39,20 +49,18 @@ def bo_loop(
         gp: Updated GP model
     """
 
-    best = []
-    top10 = []
-    y_init = y.copy()
+    # Initialize metrics
+    best = [np.max(y_observed)]
+    top10 = [find_top10_avg(y_observed)]
+    y_init = y.copy()  # This is used to compute percentiles w.r.t. candidate pool
 
-    best.append(np.max(y_observed))
-    top10.append(find_top10_avg(y_observed))
-
-    ucb = False
-    if acq_func == acquisition.ucb:
-        ucb = True
+    # Boolean indicating whether or not we are using UCB
+    ucb = acq_func == acquisition.ucb
 
     for i in range(1, num_iters + 1):
 
         print(f"Iter: {i} | Current best: {np.max(best):0.3f} | Top 10: {top10[-1]:0.3f}")
+        log_memory()
 
         # Set adaptive UCB parameter
         if ucb:
