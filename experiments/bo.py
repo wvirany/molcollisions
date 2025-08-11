@@ -153,7 +153,8 @@ def submit_slurm_jobs(experiments: List[BOExperiment], save_results: bool = Fals
 def single_bo_trial(experiment: BOExperiment) -> BOResults:
     """Run a single BO trial."""
 
-    dataset = Dockstring(target=experiment.target, seed=experiment.seed)
+    # Setting n_train = 1000000 to get entire dataset
+    dataset = Dockstring(target=experiment.target, n_train=1000000, seed=experiment.seed)
     smiles_train, smiles_test, y_train, y_test = dataset.load()
 
     X = np.concatenate([smiles_train, smiles_test])

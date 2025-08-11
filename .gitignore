@@ -75,8 +75,9 @@ models/
 results/
 profiles/
 data/
-figures/  # Generated plots (unless you want to version them)
+figures/
 tmp/
+*.yaml
 
 # OS-specific files
 .DS_Store

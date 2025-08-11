@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import stats
+from sklearn.metrics import auc
 from tanimoto_gp import FixedTanimotoGP, TanimotoGP_Params
 
 from molcollisions import acquisition
@@ -133,3 +134,13 @@ def find_top10_avg(x):
     top10 = x[indices]
 
     return np.mean(top10)
+
+
+def auc_score(best_values, max_val):
+    """Compute AUC score for BO performance."""
+    iterations = np.arange(len(best_values))
+
+    # Normalize by max auc (i.e., best molecule observed first)
+    max_area = -max_val * len(best_values)
+
+    return auc(iterations, best_values) / max_area

@@ -55,7 +55,10 @@ class RegressionResults:
 
         # Build results path
         fp_config = self.experiment.fingerprint.get_fp_type()
-        results_path = Path("results") / "regression" / self.experiment.target / fp_config
+        suffix = "-opt" if self.experiment.optimize_hp else ""
+        results_path = (
+            Path("results") / "regression" / self.experiment.target / (fp_config + suffix)
+        )
 
         # Save results to pickle file
         trial_file = results_path / f"trial_{self.experiment.trial_id:02d}.pkl"
