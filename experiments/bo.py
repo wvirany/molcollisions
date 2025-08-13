@@ -176,6 +176,8 @@ def single_bo_trial(experiment: BOExperiment) -> BOResults:
     # Minimizing docking scores corresponds to maximizing negative docking scores
     y = -np.concatenate([y_train, y_test])
 
+    print(f"dataset size: {len(X)}")
+
     # Create initial observed datasets and unobserved candidate pools
     X_init, X, y_init, y = bo_split(X, y, experiment.n_init, experiment.seed)
 

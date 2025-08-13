@@ -52,9 +52,11 @@ def bo_loop(
     # Initialize metrics
     best = [np.max(y_observed)]
     top10 = [find_top10_avg(y_observed)]
-    y_init = y.copy()  # This is used to compute percentiles w.r.t. candidate pool
+    all_scores = np.concatenate(
+        [y, y_observed]
+    )  # This is used to compute percentiles in total dataset
 
-    # Boolean indicating whether or not we are using UCB
+    # Bool indicating if we are using UCB
     ucb = acq_func == acquisition.ucb
 
     for i in range(1, num_iters + 1):
@@ -70,15 +72,14 @@ def bo_loop(
         idx = acq_func(X, gp, gp_params, epsilon)
 
         # Remove data point from candidate pool and add to observed sets
-        X_new = X[idx]
-        X = np.delete(X, idx, axis=0)
-        X_observed = np.append(X_observed, X_new)
+        X_new = X.pop(idx)
+        X_observed.append(X_new)
 
         y_new = y[idx]
         y = np.delete(y, idx, axis=0)
         y_observed = np.append(y_observed, y_new)
 
-        percentile = stats.percentileofscore(y_init, y_new)
+        percentile = stats.percentileofscore(all_scores, y_new)
         print(f"Observed function value: {y_new:0.3f} | Percentile: {percentile:0.3f}")
 
         # Compute metrics
