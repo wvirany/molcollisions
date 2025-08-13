@@ -1,5 +1,5 @@
 name: "regression_experiments"
-targets: ["ESR2", "F2", "KIT", "PARP1"] # ["ESR2", "F2", "KIT", "PARP1", "PGR"]
+targets: ["ESR2", "F2", "KIT", "PARP1", "PGR"]
 n_train: [10000]
 optimize_hp: [false, true]
 
@@ -8,11 +8,11 @@ fingerprints:
   - compressed512-r2
   - compressed1024-r2
   - compressed2048-r2
-  # - compressed4096-r2
+  - compressed4096-r2
   - sortslice512-r2
   - sortslice1024-r2
   - sortslice2048-r2
-  # - sortslice4096-r2
+  - sortslice4096-r2
 
 # SLURM job parameters
 n_trials: 10

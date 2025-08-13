@@ -40,12 +40,19 @@ def get_filtered_df(df: pd.DataFrame, target: str = "ESR2", optimize_hp: bool = 
     return df_filtered
 
 
-def plot_performance_vs_fpdim(df, target, metric="R2", optimize_hp=True, ax=None):
+def plot_performance_vs_fpdim(
+    df,
+    target: str = "ESR2",
+    metric: str = "R2",
+    optimize_hp: bool = True,
+    ax=None,
+    standalone: bool = False,
+):
     """Plot performance vs fingerprint size for different FP types."""
 
     # Get fingerprint types
     fp_types = ["sparse", "sort&slice", "compressed"]
-    fp_sizes = [512, 1024, 2048]
+    fp_sizes = [512, 1024, 2048, 4096]
 
     for fp_type in fp_types:
         fp_data = df[df["fp type"] == fp_type]
@@ -83,9 +90,19 @@ def plot_performance_vs_fpdim(df, target, metric="R2", optimize_hp=True, ax=None
             )
 
     # Formatting
-    ax.set_xlim(fp_sizes[0] - 5, fp_sizes[-1] + 5)
+    ax.set_xlim(fp_sizes[0] - 50, fp_sizes[-1] + 50)
     ax.set_xticks(fp_sizes)
-    ax.set_title(target)
+    ax.set_title(f"Target: {target}")
+
+    # Formatting options for standalone figure
+    if standalone:
+        ax.set_xlabel("Fingerprint size")
+        if metric == "R2":
+            ax.set_ylabel("$R^2$ Score")
+        else:
+            ax.set_ylabel(metric)
+        ax.legend(bbox_to_anchor=(0.5, -0.1), loc="upper center", ncol=3)
+        plt.tight_layout()
 
     return ax
 
@@ -117,34 +134,69 @@ def plot_two_targets(
 
     plt.tight_layout()
 
-    if save_path:
-        plt.savefig(f"{save_path}.svg", format="svg", dpi=300, bbox_inches="tight")
-        print(f"Figure saved to {save_path}")
-    else:
-        plt.show()
+    plt.savefig(f"{save_path}.svg", format="svg", dpi=300, bbox_inches="tight")
+    print(f"Figure saved to {save_path}")
 
 
-def make_regression_figures(results_df):
-    """Generate all regression figures."""
+def make_all_regression_figures(results_df):
+    """Generate all individual regression figures."""
 
-    targets = ["ESR2", "KIT"]
-    metrics = ["R2"]
+    targets = results_df["target"].unique()
+    metrics = ["R2", "MSE", "MAE"]
+    optimize_hp_options = [True, False]
 
-    figures_dir = Path("figures/") / "paper"
-    figures_dir.mkdir(parents=True, exist_ok=True)
+    for target in targets:
+        for metric in metrics:
+            for optimize_hp in optimize_hp_options:
+                # Create target-specific directory
+                save_dir = Path("figures/regression") / target
+                save_dir.mkdir(parents=True, exist_ok=True)
 
-    for metric in metrics:
-        save_path = figures_dir / f"{targets[0]}-{targets[1]}_{metric}_vs_fpdim"
-        plot_two_targets(
-            results_df, targets=targets, metric=metric, optimize_hp=True, save_path=save_path
-        )
+                # Create standalone figure
+                fig, ax = plt.subplots(figsize=(10, 6))
+                filtered_df = results_df[
+                    (results_df["target"] == target)
+                    & (results_df["optimized params"] == optimize_hp)
+                ]
+
+                plot_performance_vs_fpdim(
+                    filtered_df, target, metric, optimize_hp=optimize_hp, ax=ax, standalone=True
+                )
+
+                # Save figure with suffix for optimization
+                suffix = "_opt" if optimize_hp else ""
+                save_path = save_dir / f"{metric}_vs_fpdim{suffix}.png"
+                plt.savefig(save_path, dpi=300, bbox_inches="tight")
+                plt.close()
+                print(f"Figure saved to {save_path}")
+
+
+def make_regression_figures(results_df, make_all: bool = False, paper: bool = False):
+    """Generate regression figures."""
+
+    if make_all:
+        make_all_regression_figures(results_df)
+        return
+
+    if paper:
+        targets = ["ESR2", "KIT"]
+        metrics = ["R2"]
+
+        figures_dir = Path("figures/paper")
+        figures_dir.mkdir(parents=True, exist_ok=True)
+
+        for metric in metrics:
+            save_path = figures_dir / f"{targets[0]}-{targets[1]}_{metric}_vs_fpdim"
+            plot_two_targets(
+                results_df, targets=targets, metric=metric, optimize_hp=True, save_path=save_path
+            )
 
 
 def make_bo_figures(results_df):
     raise NotImplementedError
 
 
-def main(regression: bool = True, bo: bool = True):
+def main(regression: bool = False, make_all: bool = False, paper: bool = False, bo: bool = False):
 
     if regression:
         # Load regression data
@@ -157,7 +209,7 @@ def main(regression: bool = True, bo: bool = True):
         # Generate regression figures
         print("Generating regression figures...")
         regression_results_df = pd.read_csv(regression_file)
-        make_regression_figures(regression_results_df)
+        make_regression_figures(regression_results_df, make_all=make_all, paper=paper)
 
     if bo:
         # Load BO data
@@ -177,8 +229,13 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--regression", action="store_true")
+    parser.add_argument("--make_all", action="store_true")
+    parser.add_argument("--paper", action="store_true")
     parser.add_argument("--bo", action="store_true")
 
     args = parser.parse_args()
 
-    main(regression=args.regression, bo=args.bo)
+    if args.regression and not (args.make_all or args.paper):
+        raise ValueError("Must specify either --make_all or --paper when using --regression")
+
+    main(regression=args.regression, make_all=args.make_all, paper=args.paper, bo=args.bo)
