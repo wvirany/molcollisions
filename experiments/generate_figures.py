@@ -134,7 +134,8 @@ def plot_two_targets(
 
     plt.tight_layout()
 
-    plt.savefig(f"{save_path}.svg", format="svg", dpi=300, bbox_inches="tight")
+    plt.savefig(f"{save_path}.svg", format="svg", bbox_inches="tight")
+    plt.savefig(f"{save_path}.png", dpi=300, bbox_inches="tight")
     print(f"Figure saved to {save_path}")
 
 
@@ -164,7 +165,7 @@ def make_all_regression_figures(results_df):
                 )
 
                 # Save figure with suffix for optimization
-                suffix = "_opt" if optimize_hp else ""
+                suffix = "-opt" if optimize_hp else ""
                 save_path = save_dir / f"{metric}_vs_fpdim{suffix}.png"
                 plt.savefig(save_path, dpi=300, bbox_inches="tight")
                 plt.close()
