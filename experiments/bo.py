@@ -241,7 +241,7 @@ def main(
     config: str = None,
     submit: bool = False,
     target: str = "PARP1",
-    fp_config: str = "sparse-r2",
+    fp_config: str = "exact-r2",
     pool: int = 1000000,
     n_init: int = 1000,
     budget: int = 1000,
@@ -290,7 +290,7 @@ if __name__ == "__main__":
 
     # Submit individual experiment parameters for a single trial
     parser.add_argument("--target", type=str, default="PARP1")
-    parser.add_argument("--fp_config", type=str, default="sparse-r2")
+    parser.add_argument("--fp_config", type=str, default="exact-r2")
     parser.add_argument("--pool", type=int, default=1000000)
     parser.add_argument("--n_init", type=int, default=1000)
     parser.add_argument("--budget", type=int, default=1000)

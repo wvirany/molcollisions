@@ -184,7 +184,7 @@ def main(
     config: str = None,
     submit: bool = False,
     target: str = "PARP1",
-    fp_config: str = "sparse-r2",
+    fp_config: str = "exact-r2",
     n_train: int = 10000,
     optimize_hp: bool = False,
     save_results: bool = False,
@@ -234,7 +234,7 @@ if __name__ == "__main__":
 
     # Submit individual experiment parameters for a single trial
     parser.add_argument("--target", type=str, default="PARP1")
-    parser.add_argument("--fp_config", type=str, default="sparse-r2")
+    parser.add_argument("--fp_config", type=str, default="exact-r2")
     parser.add_argument("--n_train", type=int, default=10000)
     parser.add_argument("--optimize_hp", action="store_true")
 

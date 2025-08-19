@@ -4,7 +4,7 @@ n_train: [10000]
 optimize_hp: [false, true]
 
 fingerprints:
-  - sparse-r2
+  - exact-r2
   - compressed512-r2
   - compressed1024-r2
   - compressed2048-r2

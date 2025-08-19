@@ -22,9 +22,9 @@ sns.set_style(
 )
 sns.set_palette("muted")
 
-COLORS = {"sparse": "midnightblue", "compressed": "firebrick", "sort&slice": "darkgreen"}
+COLORS = {"exact": "midnightblue", "compressed": "firebrick", "sort&slice": "darkgreen"}
 
-FILL_COLORS = {"sparse": "blue", "compressed": "red", "sort&slice": "green"}
+FILL_COLORS = {"exact": "blue", "compressed": "red", "sort&slice": "green"}
 
 
 def parse_metric_tuple(metric_str):
@@ -51,7 +51,7 @@ def plot_performance_vs_fpdim(
     """Plot performance vs fingerprint size for different FP types."""
 
     # Get fingerprint types
-    fp_types = ["sparse", "sort&slice", "compressed"]
+    fp_types = ["exact", "sort&slice", "compressed"]
     fp_sizes = [512, 1024, 2048, 4096]
 
     for fp_type in fp_types:
@@ -62,16 +62,16 @@ def plot_performance_vs_fpdim(
         means = np.array([m[0] for m in metrics])
         stds = np.array([m[1] for m in metrics])
 
-        if fp_type == "sparse":
-            # Sparse FP - plot as horizontal line across all sizes
-            sparse_mean = means[0]  # Should only be one value
-            sparse_std = stds[0]
+        if fp_type == "exact":
+            # ExactFP - plot as horizontal line across all sizes
+            exact_mean = means[0]  # Should only be one value
+            exact_std = stds[0]
 
-            ax.axhline(y=sparse_mean, color=COLORS[fp_type], label="Sparse FP", linewidth=2)
+            ax.axhline(y=exact_mean, color=COLORS[fp_type], label="Exact FP", linewidth=2)
             ax.fill_between(
                 fp_sizes,
-                sparse_mean - sparse_std,
-                sparse_mean + sparse_std,
+                exact_mean - exact_std,
+                exact_mean + exact_std,
                 color=FILL_COLORS[fp_type],
                 alpha=0.1,
             )
@@ -177,7 +177,6 @@ def make_regression_figures(results_df, make_all: bool = False, paper: bool = Fa
 
     if make_all:
         make_all_regression_figures(results_df)
-        return
 
     if paper:
         targets = ["ESR2", "KIT"]

@@ -8,7 +8,7 @@ import jax.numpy as jnp
 import numpy as np
 import tanimoto_gp
 
-from molcollisions.fingerprints import CompressedFP, SortSliceFP, SparseFP
+from molcollisions.fingerprints import CompressedFP, ExactFP, SortSliceFP
 
 # Simple dataset
 smiles = ["CCO", "CCC", "CC"]
@@ -16,11 +16,11 @@ y = np.array([1.0, -0.5, 0.8])
 smiles_test = ["CCCO"]
 
 
-def test_sparse_fp_integration():
-    """Test that SparseFP works with ConstantMeanTanimotoGP"""
+def test_exact_fp_integration():
+    """Test that ExactFP works with ConstantMeanTanimotoGP"""
 
     # Create fingerprint and GP
-    fp_func = SparseFP(radius=2, count=True)
+    fp_func = ExactFP(radius=2, count=True)
     gp = tanimoto_gp.ConstantMeanTanimotoGP(fp_func, smiles, y)
 
     # Basic checks for initialization
@@ -55,7 +55,7 @@ def test_sortslice_fp_integration():
 def test_gp_prediction():
     """Test that GP can make a simple prediction."""
 
-    fp_func = SparseFP(radius=2, count=True)
+    fp_func = ExactFP(radius=2, count=True)
     gp = tanimoto_gp.ConstantMeanTanimotoGP(fp_func, smiles, y)
 
     gp_params = tanimoto_gp.TanimotoGP_Params(
@@ -72,7 +72,7 @@ def test_gp_prediction():
 def test_fixed_gp():
     """Test that FixedTanimotoGP achieves the same results as ConstantMeanTanimotoGP"""
 
-    fp_func = SparseFP(radius=2, count=True)
+    fp_func = ExactFP(radius=2, count=True)
 
     gp_params = tanimoto_gp.TanimotoGP_Params(
         raw_amplitude=jnp.array(1.0), raw_noise=jnp.array(-2.0), mean=jnp.array(0.0)

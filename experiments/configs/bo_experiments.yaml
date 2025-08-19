@@ -6,7 +6,7 @@ budget: [1000]
 acq_funcs: ["ei"]   # options are ["ei", "ucb", "uniform"]
 
 fingerprints:
-  - sparse-r2
+  - exact-r2
   - compressed1024-r2
   - compressed2048-r2
   - sortslice1024-r2

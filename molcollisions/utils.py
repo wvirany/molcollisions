@@ -3,7 +3,7 @@ import jax.numpy as jnp
 import optax
 import tanimoto_gp
 
-from molcollisions.fingerprints import CompressedFP, MolecularFingerprint, SortSliceFP, SparseFP
+from molcollisions.fingerprints import CompressedFP, ExactFP, MolecularFingerprint, SortSliceFP
 
 
 def optimize_gp_params(gp, gp_params, tol=1e-3, max_iters=10000):
@@ -90,7 +90,7 @@ def fp_from_str(fp: str) -> MolecularFingerprint:
 
     Args:
         fp: Input takes the form {fp_type}{fp_size}-r{radius}, e.g.
-        - "sparse-r2",
+        - "exact-r2",
         - "compressed2048-r4",
         etc.
 
@@ -111,8 +111,8 @@ def fp_from_str(fp: str) -> MolecularFingerprint:
     radius = int(radius[1:])
 
     # Parse fingerprint type
-    if fp_type == "sparse":
-        return SparseFP(radius=radius)
+    if fp_type == "exact":
+        return ExactFP(radius=radius)
     elif fp_type.startswith("compressed"):
         # Extract size from something like "compressed2048"
         fp_size = int(fp_type[10:])

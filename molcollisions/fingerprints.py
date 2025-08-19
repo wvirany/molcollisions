@@ -39,14 +39,14 @@ class MolecularFingerprint(ABC):
         pass
 
 
-class SparseFP(MolecularFingerprint):
+class ExactFP(MolecularFingerprint):
     """
-    Sparse fingerprint implementation - no hash collisions.
+    Exact fingerprint implementation - no hash collisions.
     """
 
     def __init__(self, radius: int = 2, count: bool = True):
         """
-        Initialize sparse fingerprint.
+        Initialize exact fingerprint.
 
         Args:
             radius: Radius for fingerprint generation
@@ -67,7 +67,7 @@ class SparseFP(MolecularFingerprint):
             return self.fpgen.GetSparseFingerprint(mol)
 
     def get_fp_type(self) -> str:
-        return f"sparse-r{self.radius}"
+        return f"exact-r{self.radius}"
 
 
 class CompressedFP(MolecularFingerprint):

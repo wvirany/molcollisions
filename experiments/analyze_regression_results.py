@@ -10,7 +10,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from molcollisions.datasets import Dockstring
 
 
-def load_predictions(target: str = "ESR2", fp_config: str = "sparse-r2", optimize_hp: bool = False):
+def load_predictions(target: str = "ESR2", fp_config: str = "exact-r2", optimize_hp: bool = False):
     """Load/aggregate predictions for a specific configuration across multiple files."""
 
     suffix = "-opt" if optimize_hp else ""
@@ -98,8 +98,8 @@ def aggregate_all_results(config_file):
 
                     # Parse fingerprint type
                     fp = fp_config.split("-")[0]
-                    if fp.startswith("sparse"):
-                        fp_type = "sparse"
+                    if fp.startswith("exact"):
+                        fp_type = "exact"
                         fp_size = None
                     elif fp.startswith("compressed"):
                         fp_type = "compressed"

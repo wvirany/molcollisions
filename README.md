@@ -69,12 +69,12 @@ Experiments can either be run programmatically or via the command line. The foll
 
 ```py
 from regression import RegressionExperiment, single_regression_trial
-from molcollisions.fingerprints import SparseFP
+from molcollisions.fingerprints import ExactFP
 
 # Create experiment
 experiment = RegressionExperiment(
     target="PARP1",
-    fingerprint=SparseFP(),
+    fingerprint=ExactFP(),
     n_train=100,
     optimize_hp=False
 )
@@ -91,7 +91,7 @@ The user has the option to submit a single job or specify parameters using a con
 Single experiment:
 
 ```bash
-python regression.py --target PARP1 --fp_config sparse-r2 --n_train 100 --save_results
+python regression.py --target PARP1 --fp_config exact-r2 --n_train 100 --save_results
 ```
 
 Batch experiments from config file:
@@ -113,7 +113,7 @@ n_train: [10000]
 optimize_hp: [true, false]
 
 fingerprints:
-  - sparse-r2
+  - exact-r2
   - compressed2048-r2
 
 # SLURM job parameters
