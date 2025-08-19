@@ -72,8 +72,9 @@ def bo_loop(
         idx = acq_func(X, gp, gp_params, epsilon)
 
         # Remove data point from candidate pool and add to observed sets
-        X_new = X.pop(idx)
-        X_observed.append(X_new)
+        X_new = X[idx]
+        X = np.delete(X, idx, axis=0)
+        X_observed = np.append(X_observed, X_new)
 
         y_new = y[idx]
         y = np.delete(y, idx, axis=0)
