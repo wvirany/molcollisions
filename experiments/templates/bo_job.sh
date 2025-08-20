@@ -8,6 +8,8 @@
 #SBATCH --nodes=1
 #SBATCH --mem={mem}
 #SBATCH --output={log_dir}/%a.out
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=waltervirany@gmail.com
 
 module purge
 module load python

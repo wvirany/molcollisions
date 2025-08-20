@@ -76,6 +76,7 @@ data/
 figures/
 tmp/
 *.yaml
+experiments/templates
 
 # OS-specific files
 .DS_Store
