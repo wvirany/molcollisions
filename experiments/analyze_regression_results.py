@@ -105,7 +105,7 @@ def aggregate_all_results(config_file):
                         fp_type = "compressed"
                         fp_size = int(fp[10:])
                     elif fp.startswith("sortslice"):
-                        fp_type = "sort&slice"
+                        fp_type = "sortslice"
                         fp_size = int(fp[9:])
 
                     stats["fp type"] = fp_type
