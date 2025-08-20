@@ -20,11 +20,17 @@ sns.set_style(
         "grid.alpha": 0.4,
     },
 )
-sns.set_palette("muted")
 
-COLORS = {"exact": "midnightblue", "compressed": "firebrick", "sort&slice": "darkgreen"}
+# Get the colorblind palette colors
+colorblind_palette = sns.color_palette("colorblind")
 
-FILL_COLORS = {"exact": "blue", "compressed": "red", "sort&slice": "green"}
+blue = colorblind_palette[0]
+reddish_orange = colorblind_palette[3]
+green = colorblind_palette[2]
+
+COLORS = {"exact": blue, "compressed": reddish_orange, "sortslice": green}
+
+FILL_COLORS = {"exact": blue, "compressed": reddish_orange, "sortslice": green}
 
 
 def parse_metric_tuple(metric_str):

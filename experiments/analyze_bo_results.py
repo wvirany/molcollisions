@@ -34,28 +34,63 @@ def load_bo_predictions(target: str = "ESR2", acq: str = "ei", fp_config: str = 
     return all_predictions
 
 
-def compute_trial_statistics(predictions, target: str = "ESR2", acq: str = "ei"):
-    """Compute statistics for AUC score across trials."""
+def compute_bo_trial_statistics(
+    predictions, target: str = "ESR2", acq: str = "ei", all_preds: bool = False
+):
+    """Compute mean/std statistics for auc, best, and top10 across trials."""
 
     dataset = Dockstring(target, n_train=1000000)
     _, _, y_train, y_test = dataset.load()
     y = np.concatenate([y_train, y_test])
 
     best_mol = np.min(y)
-    auc_scores = []
 
-    # Compute auc_score from each trial
+    num_observations = len(predictions[0]["best"])
+
+    # Extract metrics from each trial
+    auc_scores = []
+    best_all_trials = np.zeros(num_observations)
+    top10_all_trials = np.zeros(num_observations)
+
     for pred in predictions:
         best = pred["best"]
+        top10 = pred["top10"]
+
+        # Normalized auc score
         auc_scores.append(auc_score(best, best_mol))
 
-    # Compute mean/std for AUC score
+        best_all_trials = np.vstack([best_all_trials, best])
+        top10_all_trials = np.vstack([top10_all_trials, top10])
+
+    # Drop zeros in first row
+    best_all_trials = np.delete(best_all_trials, 0, axis=0)
+    top10_all_trials = np.delete(top10_all_trials, 0, axis=0)
+
+    results = {}
+
     auc_mean = float(np.mean(auc_scores).round(3))
     auc_std = float(np.std(auc_scores).round(3))
+
+    best_median = -np.median(best_all_trials, axis=0)
+    best_75 = -np.quantile(best_all_trials, 0.75, axis=0)
+    best_25 = -np.quantile(best_all_trials, 0.25, axis=0)
+
+    top10_median = -np.median(top10_all_trials, axis=0)
+    top10_75 = -np.quantile(top10_all_trials, 0.75, axis=0)
+    top10_25 = -np.quantile(top10_all_trials, 0.25, axis=0)
 
     results = {
         "AUC Score (mean, std)": (auc_mean, auc_std),
     }
+
+    if all_preds:
+        results["best_median"] = best_median
+        results["best_75"] = best_75
+        results["best_25"] = best_25
+
+        results["top10_median"] = top10_median
+        results["top10_75"] = top10_75
+        results["top10_25"] = top10_25
 
     return results
 
@@ -78,8 +113,8 @@ def aggregate_all_results(config_file):
                     predictions = load_bo_predictions(target=target, acq=acq, fp_config=fp_config)
 
                     # Compute statistics across trials
-                    stats = compute_trial_statistics(
-                        predictions=predictions, target=target, acq=acq
+                    stats = compute_bo_trial_statistics(
+                        predictions=predictions, target=target, acq=acq, all_preds=False
                     )
 
                     # Add metadata
