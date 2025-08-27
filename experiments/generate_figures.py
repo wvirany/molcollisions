@@ -27,12 +27,14 @@ sns.set_style(
 colorblind_palette = sns.color_palette("colorblind")
 
 blue = colorblind_palette[0]
-reddish_orange = colorblind_palette[3]
+orange = colorblind_palette[3]
 green = colorblind_palette[2]
 
-COLORS = {"exact": blue, "compressed": reddish_orange, "sortslice": green}
+blue = "darkslateblue"  # Trying different colors for blue
 
-FILL_COLORS = {"exact": blue, "compressed": reddish_orange, "sortslice": green}
+COLORS = {"exact": blue, "compressed": orange, "sortslice": green}
+
+FILL_COLORS = {"exact": blue, "compressed": orange, "sortslice": green}
 
 
 def parse_metric_tuple(metric_str):
@@ -59,7 +61,7 @@ def plot_performance_vs_fpdim(
     """Plot performance vs fingerprint size for different FP types."""
 
     # Get fingerprint types
-    fp_types = ["exact", "sortslice", "compressed"]
+    fp_types = ["exact", "compressed", "sortslice"]
     fp_sizes = [512, 1024, 2048, 4096]
 
     for fp_type in fp_types:
@@ -70,12 +72,16 @@ def plot_performance_vs_fpdim(
         means = np.array([m[0] for m in metrics])
         stds = np.array([m[1] for m in metrics])
 
+        label = f"{fp_type.title()} FP"
+        if fp_type == "sortslice":
+            label = "Sort&Slice FP"
+
         if fp_type == "exact":
             # ExactFP - plot as horizontal line across all sizes
             exact_mean = means[0]  # Should only be one value
             exact_std = stds[0]
 
-            ax.axhline(y=exact_mean, color=COLORS[fp_type], label="Exact FP", linewidth=2)
+            ax.axhline(y=exact_mean, color=COLORS[fp_type], label=label, linewidth=2, ls="--")
             ax.fill_between(
                 fp_sizes,
                 exact_mean - exact_std,
@@ -90,7 +96,7 @@ def plot_performance_vs_fpdim(
                 color=COLORS[fp_type],
                 marker="o",
                 markersize=4,
-                label=f"{fp_type.title()} FP",
+                label=label,
                 linewidth=2,
             )
             ax.fill_between(
@@ -100,7 +106,7 @@ def plot_performance_vs_fpdim(
     # Formatting
     ax.set_xlim(fp_sizes[0] - 50, fp_sizes[-1] + 50)
     ax.set_xticks(fp_sizes)
-    ax.set_title(f"Target: {target}")
+    ax.set_title(f"Target: {target}", fontsize=16)
 
     # Formatting options for standalone figure
     if standalone:
@@ -132,17 +138,17 @@ def plot_two_targets(
 
     # Add shared legend
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, bbox_to_anchor=(0.5, -0.03), loc="upper center", ncol=3)
+    fig.legend(handles, labels, bbox_to_anchor=(0.5, 0), loc="upper center", ncol=3, fontsize=14)
 
-    fig.supxlabel("Fingerprint size")
+    fig.supxlabel("Fingerprint size", y=0.03, fontsize=18)
     if metric == "R2":
-        fig.supylabel("$R^2$ score")
+        fig.supylabel("$R^2$ score", fontsize=18)
     else:
-        fig.supylabel(metric)
+        fig.supylabel(metric, fontsize=18)
 
     plt.tight_layout()
 
-    plt.savefig(f"{save_path}.svg", format="svg", bbox_inches="tight")
+    plt.savefig(f"{save_path}.pdf", format="pdf", bbox_inches="tight")
     plt.savefig(f"{save_path}.png", dpi=300, bbox_inches="tight")
     print(f"Figure saved to {save_path}")
 
@@ -206,6 +212,7 @@ def plot_bo_performance(
     ax=None,
     standalone: bool = False,
     show_percentiles: bool = True,
+    metric: str = "best",  # New parameter: "best" or "top10"
 ):
     """Plot BO performance for a single target."""
 
@@ -232,7 +239,7 @@ def plot_bo_performance(
     best_score = -np.max(y)
 
     # Plot results
-    xs = np.arange(len(results["exact-r2"]["best_median"]))
+    xs = np.arange(len(results["exact-r2"][f"{metric}_median"]))
 
     for fp_config in results:
         # Determine fingerprint type and size
@@ -248,16 +255,19 @@ def plot_bo_performance(
 
         # Configure alpha and offsets based on dimension
         if fp_size == 1024:
-            alpha = 0.35
+            alpha = 0.5
+            ls = "--"
         elif fp_size == 2048:
             alpha = 1.0
+            ls = "-"
         else:
             alpha = 1.0
+            ls = "-"
 
-        # Sample data
-        ys = results[fp_config]["best_median"]
-        y_25 = results[fp_config]["best_25"]
-        y_75 = results[fp_config]["best_75"]
+        # Sample data - use the specified metric
+        ys = results[fp_config][f"{metric}_median"]
+        y_25 = results[fp_config][f"{metric}_25"]
+        y_75 = results[fp_config][f"{metric}_75"]
 
         # Small offsets to prevent overlapping
         off = 5
@@ -272,64 +282,109 @@ def plot_bo_performance(
 
         # Create label
         label = f"{fp_type.title()} FP"
+
+        if fp_type == "sortslice":
+            label = "Sort&Slice FP"
+
         if fp_size:
             label += f" ({fp_size})"
 
         # Plot line
-        ax.plot(xs_offset, ys_offset, color=COLORS[fp_type], alpha=alpha, label=label, linewidth=2)
+        ax.plot(
+            xs_offset,
+            ys_offset,
+            color=COLORS[fp_type],
+            alpha=alpha,
+            label=label,
+            linewidth=2,
+            ls=ls,
+        )
 
         # Add confidence bands
-        if show_percentiles:
-            ax.fill_between(
-                xs_offset, y_25_offset, y_75_offset, color=FILL_COLORS[fp_type], alpha=0.1
-            )
+        ax.fill_between(xs_offset, y_25_offset, y_75_offset, color=FILL_COLORS[fp_type], alpha=0.1)
 
     # Add reference lines
-    ax.axhline(
-        percentile999,
-        color="red",
-        linestyle="dashed",
-        linewidth=0.75,
-        label="$99.9^\\text{th}$ percentile",
-    )
-    ax.axhline(
-        best_score, color="purple", linestyle="dashed", linewidth=0.75, label="Best Molecule"
-    )
+    if show_percentiles:
+        ax.axhline(
+            percentile999,
+            color="darkgray",
+            linestyle="dashed",
+            linewidth=1,
+            label="$99.9^\\text{th}$ percentile",
+        )
+        ax.axhline(
+            best_score, color="black", linestyle="dashed", linewidth=1, label="Best Molecule"
+        )
 
     # Formatting
     ax.set_xlim(-30, 1030)
-    ax.set_title(f"Target: {target}")
 
     if standalone:
         ax.set_xlabel("Iteration")
-        ax.set_ylabel("Docking score")
+        if metric == "best":
+            ax.set_ylabel("Best docking score")
+        else:
+            ax.set_ylabel("Top-10 avg docking score")
+        ax.set_title(f"Target: {target}")
         ax.legend()
         plt.tight_layout()
 
     return ax
 
 
-def plot_four_targets_bo(targets, acq: str = "ei", save_path: str = None):
-    """Plot BO results for four targets in 2x2 grid."""
+def plot_bo_grid(targets, acq: str = "ei", save_path: str = None):
+    """Plot "best" and "top10" BO results for two targets in 2x2 grid."""
 
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    axes = axes.flatten()
+    fig, axes = plt.subplots(2, 2, sharex=True, figsize=(16, 12))
+    metrics = ["best", "top10"]
 
     for i, target in enumerate(targets):
-        plot_bo_performance(target=target, acq=acq, ax=axes[i], show_percentiles=True)
+        for j, metric in enumerate(metrics):
+            ax = axes[i, j]
 
-    # Add shared legend
-    handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, bbox_to_anchor=(0.5, -0.02), loc="upper center", ncol=7)
+            # Only show percentiles for "best" metric
+            show_percentiles = metric == "best"
 
-    # Shared labels
-    fig.supxlabel("Iteration")
-    fig.supylabel("Docking score")
+            plot_bo_performance(
+                target=target, acq=acq, ax=ax, show_percentiles=show_percentiles, metric=metric
+            )
+
+    # Add row-lables (targets) on the right
+    for i, target in enumerate(targets):
+        axes[i, 1].yaxis.set_label_position("right")
+        axes[i, 1].set_ylabel(f"Target: {target}", fontsize=24, rotation=270, labelpad=25)
+
+    # Add column titles
+    axes[0, 0].set_title("Best molecule", fontsize=24, y=1.01)
+    axes[0, 1].set_title("Top-10 average", fontsize=24, y=1.01)
+
+    fig.supxlabel("Iterations", fontsize=24)
+    fig.supylabel("Docking score", fontsize=24, x=0.01)
+
+    # Add shared legend at the bottom
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    handles.pop(1)
+    labels.pop(1)
+    handles.pop(2)
+    labels.pop(2)
+
+    labels[1] = "Compressed FP"
+    labels[2] = "Sort&Slice FP"
+
+    fig.legend(
+        handles,
+        labels,
+        bbox_to_anchor=(0.5, 0.0),
+        loc="upper center",
+        ncol=5,
+        columnspacing=2.0,
+        fontsize=20,
+    )
 
     plt.tight_layout()
 
     if save_path:
-        plt.savefig(f"{save_path}.svg", format="svg", bbox_inches="tight")
+        plt.savefig(f"{save_path}.pdf", format="pdf", dpi=300, bbox_inches="tight")
         plt.savefig(f"{save_path}.png", dpi=300, bbox_inches="tight")
         print(f"Figure saved to {save_path}")
 
@@ -337,23 +392,39 @@ def plot_four_targets_bo(targets, acq: str = "ei", save_path: str = None):
 def make_all_bo_figures(targets, acq: str = "ei"):
     """Generate individual BO figures for each target."""
 
+    metrics = ["best", "top10"]
+
     for target in targets:
-        # Create target-specific directory
-        save_dir = Path("figures/bo")
-        save_dir.mkdir(parents=True, exist_ok=True)
+        for metric in metrics:
+            # Create target-specific directory
+            save_dir = Path("figures/bo")
+            save_dir.mkdir(parents=True, exist_ok=True)
 
-        # Create standalone figure
-        fig, ax = plt.subplots(figsize=(10, 6))
-        plot_bo_performance(target=target, acq=acq, ax=ax, standalone=True)
+            if metric == "best":
+                show_percentiles = True
+            else:
+                show_percentiles = False
 
-        # Save figure
-        save_path = save_dir / f"{target}-best.png"
-        plt.savefig(save_path, dpi=300, bbox_inches="tight")
-        plt.close()
-        print(f"Figure saved to {save_path}")
+            # Create standalone figure
+            fig, ax = plt.subplots(figsize=(10, 6))
+            plot_bo_performance(
+                target=target,
+                acq=acq,
+                ax=ax,
+                standalone=True,
+                show_percentiles=show_percentiles,
+                metric=metric,
+            )
+
+            # Save figure
+            save_path = save_dir / f"{target}-{metric}.png"
+            plt.savefig(save_path, dpi=300, bbox_inches="tight")
+            plt.close()
+            print(f"Figure saved to {save_path}")
 
 
 def make_bo_figures(results_df, make_all: bool = False, paper: bool = False):
+    """Generate BO figures."""
 
     if make_all:
         targets = results_df["target"].unique()
@@ -361,15 +432,14 @@ def make_bo_figures(results_df, make_all: bool = False, paper: bool = False):
         make_all_bo_figures(targets, acq=acq)
 
     if paper:
-        targets = ["ESR2", "KIT", "PARP1", "PGR"]
+        targets = ["ESR2", "PGR"]
         acq = "ei"
 
         figures_dir = Path("figures/paper")
         figures_dir.mkdir(parents=True, exist_ok=True)
 
-        save_path = figures_dir / "best_mol-four_targets"
-
-        plot_four_targets_bo(targets=targets, acq=acq, save_path=save_path)
+        save_path = figures_dir / f"{targets[0]}-{targets[1]}_grid"
+        plot_bo_grid(targets=targets, acq=acq, save_path=save_path)
 
 
 def main(regression: bool = False, make_all: bool = False, paper: bool = False, bo: bool = False):
@@ -383,7 +453,7 @@ def main(regression: bool = False, make_all: bool = False, paper: bool = False, 
             return
 
         # Generate regression figures
-        print("Generating regression figures...")
+        print("Generating regression figure(s)...")
         regression_results_df = pd.read_csv(regression_file)
         make_regression_figures(regression_results_df, make_all=make_all, paper=paper)
 
@@ -396,7 +466,7 @@ def main(regression: bool = False, make_all: bool = False, paper: bool = False, 
             return
 
         # Generate BO figures
-        print("Generating BO figures...")
+        print("Generating BO figure(s)...")
         bo_results_df = pd.read_csv(bo_file)
         make_bo_figures(bo_results_df, make_all=make_all, paper=paper)
 
