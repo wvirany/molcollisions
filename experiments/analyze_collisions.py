@@ -1,0 +1,144 @@
+from collections import defaultdict
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+from molcollisions.datasets import Dockstring
+from molcollisions.fingerprints import ExactFP
+
+TARGET = "ESR2"
+FP_SIZES = [512, 1024, 2048, 4096]
+
+
+def compute_collisions(smiles_list, fp_size, radius=2):
+
+    exact_fp = ExactFP(radius=radius)
+
+    all_morgan_ids = set()
+
+    for i, smiles in enumerate(smiles_list):
+        fp = exact_fp(smiles)
+        elements = fp.GetNonzeroElements()
+
+        for morgan_id in elements.keys():
+            all_morgan_ids.add(morgan_id)
+
+    num_unique_substructures = len(all_morgan_ids)
+
+    results = {}
+
+    # Map each Morgan ID to its hash bucket
+    hash_to_morgan_ids = defaultdict(set)
+
+    for morgan_id in all_morgan_ids:
+        hash_value = morgan_id % fp_size
+        hash_to_morgan_ids[hash_value].add(morgan_id)
+
+    num_occupied_buckets = len(hash_to_morgan_ids)
+    num_buckets_with_collisions = sum(1 for ids in hash_to_morgan_ids.values() if len(ids) > 1)
+
+    # Total number of collisions = sum(# IDs in bucket - 1)
+    total_collisions = sum(len(ids) - 1 for ids in hash_to_morgan_ids.values())
+
+    # Average number of Morgan IDs per bucket
+    avg_morgan_ids_per_bucket = np.mean([len(ids) for ids in hash_to_morgan_ids.values()])
+    max_morgan_ids_per_bucket = max([len(ids) for ids in hash_to_morgan_ids.values()])
+
+    # Collision rate: what fraction of unique substructures are involved in collisions
+    num_structures_in_collisions = sum(
+        len(ids) for ids in hash_to_morgan_ids.values() if len(ids) > 1
+    )
+    collision_rate = num_structures_in_collisions / num_unique_substructures
+
+    # Load factor: how "full" is the hash table? Number of elements in hash table / number of buckets
+    load_factor = num_unique_substructures / fp_size
+
+    results = {
+        "fp_size": fp_size,
+        "unique_substructures": num_unique_substructures,
+        "occupied_buckets": num_occupied_buckets,
+        "buckets_with_collisions": num_buckets_with_collisions,
+        "total_collisions": total_collisions,
+        "collision_rate": collision_rate,
+        "avg_morgan_ids_per_bucket": avg_morgan_ids_per_bucket,
+        "max_morgan_ids_per_bucket": max_morgan_ids_per_bucket,
+        "load_factor": load_factor,
+    }
+
+    return results
+
+
+def main():
+
+    train_results = []
+    test_results = []
+    full_results = []
+
+    # Analyze training set for different seeds
+    for seed in range(10):
+        print(f"Loading dataset with seed {seed}...")
+
+        dataset = Dockstring(target=TARGET, n_train=10000, seed=seed)
+        smiles_train, smiles_test, _, _ = dataset.load()
+
+        for fp_size in FP_SIZES:
+            results = compute_collisions(smiles_train, fp_size)
+            results["seed"] = seed
+            train_results.append(results)
+
+    # Analyze test set
+    for fp_size in FP_SIZES:
+        results = compute_collisions(smiles_test, fp_size)
+        test_results.append(results)
+
+    # Analyze full dataset
+    dataset = Dockstring(target=TARGET, n_train=1000000)
+    smiles_train, smiles_test, _, _ = dataset.load()
+    all_smiles = np.concatenate([smiles_train, smiles_test])
+
+    for fp_size in FP_SIZES:
+        results = compute_collisions(all_smiles, fp_size)
+        full_results.append(results)
+
+    train_df_raw = pd.DataFrame(train_results)
+    test_df = pd.DataFrame(test_results)
+    full_df = pd.DataFrame(full_results)
+
+    train_summary = []
+    for fp_size in FP_SIZES:
+        fp_data = train_df_raw[train_df_raw["fp_size"] == fp_size]
+
+        summary = {
+            "fp_size": fp_size,
+            "unique_substructures_mean": fp_data["unique_substructures"].mean(),
+            "unique_substructures_std": fp_data["unique_substructures"].std(),
+            "occupied_buckets_mean": fp_data["occupied_buckets"].mean(),
+            "occupied_buckets_std": fp_data["occupied_buckets"].std(),
+            "buckets_with_collisions_mean": fp_data["buckets_with_collisions"].mean(),
+            "buckets_with_collisions_std": fp_data["buckets_with_collisions"].std(),
+            "total_collisions_mean": fp_data["total_collisions"].mean(),
+            "total_collisions_std": fp_data["total_collisions"].std(),
+            "collision_rate_mean": fp_data["collision_rate"].mean(),
+            "collision_rate_std": fp_data["collision_rate"].std(),
+            "avg_morgan_ids_per_bucket_mean": fp_data["avg_morgan_ids_per_bucket"].mean(),
+            "avg_morgan_ids_per_bucket_std": fp_data["avg_morgan_ids_per_bucket"].std(),
+            "max_morgan_ids_per_bucket_mean": fp_data["max_morgan_ids_per_bucket"].mean(),
+            "max_morgan_ids_per_bucket_std": fp_data["max_morgan_ids_per_bucket"].std(),
+            "load_factor_mean": fp_data["load_factor"].mean(),
+            "load_factor_std": fp_data["load_factor"].std(),
+        }
+        train_summary.append(summary)
+
+    train_df = pd.DataFrame(train_summary)
+
+    output_path = Path("results/collisions/")
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    train_df.to_csv(output_path / "train.csv", index=False, float_format="%.4f")
+    test_df.to_csv(output_path / "test.csv", index=False, float_format="%.4f")
+    full_df.to_csv(output_path / "full.csv", index=False, float_format="%.4f")
+
+
+if __name__ == "__main__":
+    main()
