@@ -1,8 +1,10 @@
+import argparse
 from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from rdkit.Chem import DataStructs
 
 from molcollisions.datasets import Dockstring
 from molcollisions.fingerprints import ExactFP
@@ -69,7 +71,7 @@ def compute_collisions(smiles_list, fp_size, radius=2):
     return results
 
 
-def main():
+def analyze_dataset():
 
     train_results = []
     test_results = []
@@ -140,5 +142,30 @@ def main():
     full_df.to_csv(output_path / "full.csv", index=False, float_format="%.4f")
 
 
+def analyze_pairs():
+    
+    dataset = Dockstring(target=TARGET, n_train=1000)
+    smiles_list, _, _, _ = dataset.load()
+
+    smiles_df = pd.DataFrame(smiles_list)
+    print(smiles_df.head())
+    print(smiles_df.shape)
+
+    smiles_df.to_csv(Path("results/collisions/smiles.csv"), index=False)
+
+
+def main(args):
+
+    if args.dataset:
+        analyze_dataset()
+    elif args.pairs:
+        analyze_pairs()
+
 if __name__ == "__main__":
-    main()
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset", action="store_true")
+    parser.add_argument("--pairs", action="store_true")
+    args = parser.parse_args()
+
+    main(args)
