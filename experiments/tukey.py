@@ -88,9 +88,9 @@ def compare_exact_to_others(target: str, optimize_hp: bool = False):
     print(f"ANOVA: F={f_stat:.4f}, p={p_value_anova:.4e}")
     
     if p_value_anova > 0.05:
-        print("  → No significant differences detected by ANOVA (α=0.05)")
+        print("No significant differences detected by ANOVA (a=0.05)")
     else:
-        print("  → Significant differences detected by ANOVA")
+        print("Significant differences detected by ANOVA")
     
     # Run Tukey's HSD
     tukey_result = pairwise_tukeyhsd(
@@ -176,24 +176,10 @@ def create_summary_table(all_results):
 
 
 if __name__ == "__main__":
-    print("\n" + "="*70)
-    print("TUKEY'S HSD: EXACT-R2 vs OTHER FINGERPRINTS")
-    print("="*70)
-    
-    print("\n" + "="*70)
-    print("NON-OPTIMIZED HYPERPARAMETERS")
-    print("="*70)
-    results_nonopt = analyze_all_targets(optimize_hp=False)
-    
-    print("\n" + "="*70)
-    print("OPTIMIZED HYPERPARAMETERS")
-    print("="*70)
-    results_opt = analyze_all_targets(optimize_hp=True)
-    
-    # Create summary tables
-    
+    results_nonopt = analyze_all_targets(optimize_hp=False)    
     summary_nonopt = create_summary_table(results_nonopt)
     summary_nonopt.to_csv("results/tukey/summary_nonopt.csv", index=False)
 
+    results_opt = analyze_all_targets(optimize_hp=True)
     summary_opt = create_summary_table(results_opt)
     summary_opt.to_csv("results/tukey/summary_opt.csv", index=False)

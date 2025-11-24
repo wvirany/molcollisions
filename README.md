@@ -1,12 +1,17 @@
+# Hash Collisions in Molecular Fingerprints
+
+Code to accompany the paper: [https://arxiv.org/abs/2511.17078](https://arxiv.org/abs/2511.17078)
+
+
 # Development Setup
 
 ```bash
 # Clone and install
 git clone https://github.com/wvirany/molcollisions.git
-cd molcollisions
-pip install -e .
 
-# Set up code quality tools
+cd molcollisions
+
+pip install -e .
 pre-commit install
 ```
 
@@ -26,10 +31,10 @@ dependencies = [
 ]
 ```
 
-This project uses specific forks of existing packages:
+This project uses custom implementations of existing packages:
 
-* `tanimoto_gp` - Tanimoto kernel Gaussian processes (forked to provide caching optimizations)
-* `kern_gp` - Kernel computations with Cholesky updates (forked to provide efficient Cholesky factor updates)
+* `tanimoto_gp` - Tanimoto kernel Gaussian processes (forked to provide caching for fast BO)
+* `kern_gp` - Kernel computations with Cholesky updates (forked to provide efficient Cholesky factor updates for BO)
 
 **Sort&Slice Fingerprint Dependency**
 
@@ -41,29 +46,13 @@ git clone https://github.com/MarkusFerdinandDablander/ECFP-Sort-and-Slice.git
 
 # Add to Python path
 export PYTHONPATH=$PYTHONPATH:$(pwd)/ECFP-Sort-and-Slice
-
-# Verify installation
-python -c "from sort_and_slice_ecfp_featuriser import create_sort_and_slice_ecfp_featuriser; print('Success!')"
 ```
 
 **Development tools:** `pytest`, `pre-commit`, `black`, `ruff`, `mypy`
 
-**Code quality:**
-
-Code formatting and linting run automatically on commit via pre-commit hooks, type checking with `mypy` is manual:
-
-```bash
-# Manual run on all files
-pre-commit run --all-files
-
-# Type checking (manual)
-mypy molcollisions/
-```
-
-
 # Experiments
 
-Experiments can either be run programmatically or via the command line. The following code snippets show how to run regression experiments, but the interface is the same for classification or BO experiments.
+Experiments can either be run programmatically or via the command line. The following demonstrates how to run regression experiments, but the interface is the same for BO experiments.
 
 ### Programmatic usage:
 
@@ -132,3 +121,5 @@ if slurm_array_id is not None:
     experiment.trial_id = int(slurm_array_id)
     experiment.seed = int(slurm_array_id)
 ```
+
+Results are saved to `experiments/results/`

@@ -1,5 +1,0 @@
-fp_size,unique_substructures,occupied_buckets,buckets_with_collisions,total_collisions,collision_rate,avg_morgan_ids_per_bucket,max_morgan_ids_per_bucket,load_factor
-512,159180,512,512,158668,1.0000,310.8984,361,310.8984
-1024,159180,1024,1024,158156,1.0000,155.4492,200,155.4492
-2048,159180,2048,2048,157132,1.0000,77.7246,112,77.7246
-4096,159180,4096,4096,155084,1.0000,38.8623,65,38.8623

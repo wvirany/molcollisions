@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -441,8 +442,58 @@ def make_bo_figures(results_df, make_all: bool = False, paper: bool = False):
         save_path = figures_dir / f"{targets[0]}-{targets[1]}_grid"
         plot_bo_grid(targets=targets, acq=acq, save_path=save_path)
 
+    
+def make_collisions_plots(collisions_results_df):
+    """Generate collisions figures."""
+    fig, axes = plt.subplots(2, 2, sharex=True, sharey=True, figsize=(12, 12))
+    palette = sns.color_palette("light:b", as_cmap=True)
 
-def main(regression: bool = False, make_all: bool = False, paper: bool = False, bo: bool = False):
+    # Truncate it to cut off the darkest part (use 0.2-1.0 instead of 0.0-1.0)
+    def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=256):
+        return mcolors.LinearSegmentedColormap.from_list(
+            f'trunc_{cmap.name}',
+            cmap(np.linspace(minval, maxval, n)))
+
+    palette_truncated = truncate_colormap(palette, minval=0.2, maxval=1.0)
+    palette_truncated_light = truncate_colormap(palette, minval=0.1, maxval=1.0)
+    
+    for i, fp_size in enumerate([512, 1024, 2048, 4096]):
+        fp_data = collisions_results_df[collisions_results_df["fp_size"] == fp_size]
+        ax = axes[i//2, i%2]
+        idx = np.argmax(fp_data["tanimoto_compressed"].to_numpy())
+        fp_data = fp_data[fp_data['pair_idx'] != idx]  # Remove outlier for better visualization
+        
+        if i == 0:
+            sns.scatterplot(data=fp_data, x="tanimoto_exact", y="tanimoto_compressed", 
+                            hue="num_collisions", ax=ax, alpha=0.8, palette=palette_truncated_light)
+            ax.legend()
+        else:
+            sns.scatterplot(data=fp_data, x="tanimoto_exact", y="tanimoto_compressed", 
+                            hue="num_collisions", ax=ax, alpha=0.8, palette=palette_truncated_light)
+            ax.legend()
+            
+        max = fp_data[["tanimoto_compressed"]].to_numpy().max()
+            
+        ax.plot([0, max], [0, max], color='black', linestyle='--', linewidth=1, alpha=0.6)
+
+        ax.set_xlabel("")
+        ax.set_ylabel("")
+        
+        ax.set_title(f"{fp_size}", fontsize=18)
+
+    fig.supxlabel("Exact Tanimoto similarity", fontsize=20)
+    fig.supylabel("Compressed Tanimoto similarity", x=.01, fontsize=20)
+
+    plt.tight_layout()
+
+    save_path = Path("../figures/collisions")
+    save_path.mkdir(parents=True, exist_ok=True)
+
+    plt.savefig(save_path / "pairs.png", dpi=300, bbox_inches="tight")
+    print(f"Figure saved to {save_path}")
+
+
+def main(regression: bool = False, make_all: bool = False, paper: bool = False, bo: bool = False, collisions: bool = False):
 
     if regression:
         # Load regression data
@@ -469,6 +520,19 @@ def main(regression: bool = False, make_all: bool = False, paper: bool = False, 
         print("Generating BO figure(s)...")
         bo_results_df = pd.read_csv(bo_file)
         make_bo_figures(bo_results_df, make_all=make_all, paper=paper)
+    
+    if collisions:
+        # Load collisions data
+        collisions_file = Path("results/collisions/pairs.csv")
+
+        if not collisions_file.exists():
+            print(f"Error: {collisions_file} not found. Run analyze_collisions.py first.")
+            return   
+
+        # Generate collisions figures
+        print("Generating collisions figure(s)...")
+        collisions_results_df = pd.read_csv(collisions_file)
+        make_collisions_plots(collisions_results_df)
 
 
 if __name__ == "__main__":
@@ -478,10 +542,10 @@ if __name__ == "__main__":
     parser.add_argument("--make_all", action="store_true")
     parser.add_argument("--paper", action="store_true")
     parser.add_argument("--bo", action="store_true")
-
+    parser.add_argument("--collisions", action="store_true")
     args = parser.parse_args()
 
     if args.regression and not (args.make_all or args.paper):
         raise ValueError("Must specify either --make_all or --paper when using --regression")
 
-    main(regression=args.regression, make_all=args.make_all, paper=args.paper, bo=args.bo)
+    main(regression=args.regression, make_all=args.make_all, paper=args.paper, bo=args.bo, collisions=args.collisions)

@@ -4,13 +4,29 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 from rdkit.Chem import DataStructs
 
 from molcollisions.datasets import Dockstring
-from molcollisions.fingerprints import ExactFP
+from molcollisions.fingerprints import ExactFP, CompressedFP
 
 TARGET = "ESR2"
 FP_SIZES = [512, 1024, 2048, 4096]
+
+
+def compute_pairwise_collisions(fp1_exact, fp2_exact, fp_size):
+    """Count how many different Morgan IDs collide between two molecules."""
+    morgan_ids_1 = set(fp1_exact.GetNonzeroElements().keys())
+    morgan_ids_2 = set(fp2_exact.GetNonzeroElements().keys())
+    
+    num_collisions = 0
+    for mid1 in morgan_ids_1:
+        for mid2 in morgan_ids_2:
+            if mid1 != mid2 and (mid1 % fp_size) == (mid2 % fp_size):
+                num_collisions += 1
+
+    return num_collisions
 
 
 def compute_collisions(smiles_list, fp_size, radius=2):
@@ -142,16 +158,76 @@ def analyze_dataset():
     full_df.to_csv(output_path / "full.csv", index=False, float_format="%.4f")
 
 
-def analyze_pairs():
+def analyze_pairs(num_pairs=10000):
     
     dataset = Dockstring(target=TARGET, n_train=1000)
     smiles_list, _, _, _ = dataset.load()
 
-    smiles_df = pd.DataFrame(smiles_list)
-    print(smiles_df.head())
-    print(smiles_df.shape)
+    n_mols = len(smiles_list)
+    pairs = []
+    for _ in range(num_pairs):
+        idx1, idx2 = np.random.choice(n_mols, size=2, replace=False)
+        pairs.append((smiles_list[idx1], smiles_list[idx2]))
 
-    smiles_df.to_csv(Path("results/collisions/smiles.csv"), index=False)
+    exact_fp = ExactFP(radius=2)
+    compressed_fps = {size: CompressedFP(radius=2, fp_size=size) for size in FP_SIZES}
+
+    # Analyze each pair
+    results_list = []
+    for i, (smiles_1, smiles_2) in enumerate(pairs):
+        fp1_exact = exact_fp(smiles_1)
+        fp2_exact = exact_fp(smiles_2)
+        tanimoto_exact = DataStructs.TanimotoSimilarity(fp1_exact, fp2_exact)
+
+        for fp_size in FP_SIZES:
+            fp1_compressed = compressed_fps[fp_size](smiles_1)
+            fp2_compressed = compressed_fps[fp_size](smiles_2)
+            tanimoto_compressed = DataStructs.TanimotoSimilarity(fp1_compressed, fp2_compressed)
+            num_collisions = compute_pairwise_collisions(fp1_exact, fp2_exact, fp_size)
+            results = {
+                'pair_idx': i,
+                'fp_size': fp_size,
+                'num_collisions': num_collisions,
+                'tanimoto_exact': tanimoto_exact,
+                'tanimoto_compressed': tanimoto_compressed,
+                'tanimoto_compressed_difference': tanimoto_compressed - tanimoto_exact,
+            }
+            results_list.append(results)
+    
+    results_df = pd.DataFrame(results_list)
+    results_df.to_csv(Path("results/collisions/pairs.csv"), index=False, float_format="%.4f")
+
+    return results_df
+
+
+def create_pairwise_summary(results_df):
+    summary = {}
+    for fp_size in FP_SIZES:
+        fp_data = results_df[results_df["fp_size"] == fp_size]
+        num_collisions_mean = fp_data["num_collisions"].mean()
+        num_collisions_median = fp_data["num_collisions"].median()
+        num_collisions_std = fp_data["num_collisions"].std()
+
+        tanimoto_exact_mean = fp_data["tanimoto_exact"].mean()
+        tanimoto_compressed_mean = fp_data["tanimoto_compressed"].mean()
+
+        tanimoto_difference_mean = fp_data["tanimoto_compressed_difference"].mean()
+        tanimoto_difference_median = fp_data["tanimoto_compressed_difference"].median()
+        tanimoto_difference_std = fp_data["tanimoto_compressed_difference"].std()
+
+        summary[fp_size] = {
+            'num_collisions_mean': num_collisions_mean,
+            'num_collisions_median': num_collisions_median,
+            'num_collisions_std': num_collisions_std,
+            'tanimoto_exact_mean': tanimoto_exact_mean,
+            'tanimoto_compressed_mean': tanimoto_compressed_mean,
+            'tanimoto_difference_mean': tanimoto_difference_mean,
+            'tanimoto_difference_median': tanimoto_difference_median,
+            'tanimoto_difference_std': tanimoto_difference_std,
+        }
+    
+    df = pd.DataFrame(summary)
+    df.to_csv(Path("results/collisions/pairs_summary.csv"), index=False, float_format="%.4f")
 
 
 def main(args):
@@ -159,7 +235,8 @@ def main(args):
     if args.dataset:
         analyze_dataset()
     elif args.pairs:
-        analyze_pairs()
+        results_df = analyze_pairs()
+        create_pairwise_summary(results_df)
 
 if __name__ == "__main__":
 
