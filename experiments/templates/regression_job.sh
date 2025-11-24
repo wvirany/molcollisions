@@ -2,8 +2,6 @@
 
 #SBATCH --job-name=regression-{job_name}
 #SBATCH --array=0-{n_trials}
-#SBATCH --partition=amilan
-#SBATCH --qos=normal
 #SBATCH --time={time}
 #SBATCH --nodes=1
 #SBATCH --mem={mem}
