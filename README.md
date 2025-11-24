@@ -111,7 +111,7 @@ time: "8:00:00"
 mem: "128G"
 ```
 
-This generates experiments for each combination of parameters. SLURM jobs use the template in templates/regression_job.sh and save results to results/regression/{target}/{fingerprint}/trial_*.pkl. Each experiment is run `n_trials` different times with a seed corresponding to the SLRUM array ID, allowing for multiple random trials of a given experiment with different initializations:
+This generates experiments for each combination of parameters. SLURM jobs use the template in templates/regression_job.sh and save results to `results/regression/{target}/{fingerprint}/trial_*.pkl`. Each experiment is run `n_trials` different times with a seed corresponding to the SLRUM array ID, allowing for multiple random trials of a given experiment with different initializations:
 
 ```py
 # Initialize trial ID as SLURM array ID
@@ -121,5 +121,3 @@ if slurm_array_id is not None:
     experiment.trial_id = int(slurm_array_id)
     experiment.seed = int(slurm_array_id)
 ```
-
-Results are saved to `experiments/results/`
